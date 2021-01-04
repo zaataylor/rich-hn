@@ -177,6 +177,3 @@ def get_html(url: str) -> str:
     }
     r = requests.get(url, headers=headers)
     return r.text
-
-if __name__ == '__main__':
-    main()
