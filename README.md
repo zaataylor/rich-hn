@@ -20,7 +20,7 @@ Implementation Status Symbols
 |------------|-------------------------|
 | **&check;**| **Done**                |
 | **_WIP_**  | **Work In Progress**    |
-| **_NYI_**   | **Not Yet Implemented** |
+| **_NYI_**  | **Not Yet Implemented** |
 
 
 - [**_NYI_**] Vim standard keybindings (`h`, `j`, `k`, `l`) for scrolling up and down, and navigating forward and backward through pages using.
@@ -29,3 +29,4 @@ Implementation Status Symbols
 - [**_NYI_**] Different colors for `Ask HN`, `Show HN`, `stories`, and `jobs` posts.
 - [**_NYI_**] Manual updating of a page's contents using a specific keybinding.
 - [**_NYI_**] `more` style scrolling UI.
+- [**_NYI_**] Display posts in a table or list style
