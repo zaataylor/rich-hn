@@ -5,6 +5,31 @@ import collections
 import bs4
 import requests
 
+class Post(object):
+    """Represents a post on Hacker News."""
+    post_id = None
+    content = None
+
+    def __init__(self, post_id: int, content: dict = None):
+        self.post_id = post_id
+        self.content = content
+
+    def __str__(self):
+        return str(self.post_id) + ' ' + str(self.content)
+
+POST_TYPE = {
+    'STORY' : 'story',
+    'JOB' : 'job',
+    'COMMENT' : 'comment',
+    'POLL' : 'poll',
+    'POLLOPT' : 'pollopt'
+}
+
+HN_BASE = 'https://news.ycombinator.com/'
+HN_NEWS = HN_BASE + 'news'
+HN_API_BASE = 'https://hacker-news.firebaseio.com/v0/'
+HN_API_ITEMS = HN_API_BASE + 'item/'
+
 def get_posts_on_page(page_num: int):
     posts = process_page(get_page(page_num))
     if posts is None:
@@ -12,7 +37,7 @@ def get_posts_on_page(page_num: int):
     return posts
 
 def process_page(text: str) -> Dict:
-    """Processes text representing HTML for a page of HN."""
+    """Processes text representing HTML for a page of HN, returning Posts."""
     soup = bs4.BeautifulSoup(text, 'html.parser')
     posts = collections.OrderedDict()
 
@@ -37,6 +62,7 @@ def process_page(text: str) -> Dict:
                 for descendant in child.children:
                     if descendant.has_attr('class') and descendant['class'][0] == 'subtext':
                         item_id, subtext_info = extract_subtext_info(child)
+                        # find the appropriate Post and update its content
                         p = posts[item_id]
                         p.content.update(subtext_info)
     else:
@@ -45,7 +71,7 @@ def process_page(text: str) -> Dict:
     return posts
 
 def extract_subtext_info(t: bs4.Tag) -> Tuple[int, Dict]:
-    """Extract the information from a tag correspond to HN post subtext."""
+    """Extract the information from a tag corresponding to subtext of a post on main page of HN."""
     subtext_info = dict()
 
     # get the score/points, if it exists
@@ -72,7 +98,7 @@ def extract_subtext_info(t: bs4.Tag) -> Tuple[int, Dict]:
     return post_id, subtext_info
 
 def extract_thing_info(t: bs4.Tag) -> Dict:
-    """Extract the information from a tag corresponding to HN post title."""              
+    """Extract the information from a tag corresponding to title of a post on main page of HN."""              
     content = dict()
 
     # get rank, if it exists
@@ -91,13 +117,42 @@ def extract_thing_info(t: bs4.Tag) -> Dict:
     sitebit_space = t.find('span', attrs={'class': 'sitestr'})
     site_bit = sitebit_space.string if sitebit_space is not None else ''
     content['sitebit'] = site_bit
+    # empty strings considered False: all other strings are True
+    sitebit_present = bool(site_bit)
+
+    votelinks = t.find('td', attrs={'class': 'votelinks'})
+    votelink_present = True if votelinks is not None else False
+    post_id = int(t['id'])
+    content['type'] = extract_type(post_id, title, votelink_present, sitebit_present)
 
     return content
 
+def extract_type(post_id: int, title: str , votelink_present: bool,
+    sitebit_present: bool):
+    """Extracts the type of a post on main page of HN using tag-derived information."""
+
+    # Jobs posts are the only ones that don't have voting links
+    if not votelink_present:
+        return POST_TYPE['JOB']
+    elif title.startswith('Ask HN:') or title.startswith('Tell HN:') or \
+        title.startswith('Show HN:'):
+        return POST_TYPE['STORY']
+    elif sitebit_present:
+        # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
+        # conditional have a sitebit present since they link to URLs
+        return POST_TYPE['STORY']
+    elif title.startswith('Poll:'):
+        return POST_TYPE['POLL']
+    else:
+        # call the API to get the type for the given post
+        url = HN_API_ITEMS + '{}.json'.format(post_id)
+        p_data = requests.get(url).json()
+        p_type = p_data['type'].upper()
+        return POST_TYPE[p_type]
+    
 def get_page(page_num: int) -> str:
     """Returns the HTML content for a given page of HN."""
-    hn_url = 'https://news.ycombinator.com/news?p='
-    page_url = hn_url + str(page_num)
+    page_url = HN_NEWS + '?p={}'.format(page_num)
 
     return get_html(page_url)
 
@@ -109,17 +164,6 @@ def get_html(url: str) -> str:
     }
     r = requests.get(url, headers=headers)
     return r.text
-
-class Post(object):
-    post_id = None
-    content = None
-
-    def __init__(self, post_id: int, content: dict = None):
-        self.post_id = post_id
-        self.content = content
-
-    def __str__(self):
-        return str(self.post_id) + ' ' + str(self.content)
 
 if __name__ == '__main__':
     main()
