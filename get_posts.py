@@ -5,38 +5,42 @@ import collections
 import bs4
 import requests
 
-def main():
-    hn_url = 'https://news.ycombinator.com'
-    html = get_html(hn_url)
-    posts = process_html(html)
+def get_posts_on_page(page_num: int):
+    posts = process_page(get_page(page_num))
+    if posts is None:
+        print("posts is None")
+    return posts
 
-def process_html(text: str) -> Dict:
-    """Processes text representing HTML to create a dictionary with HN post info."""
+def process_page(text: str) -> Dict:
+    """Processes text representing HTML for a page of HN."""
     soup = bs4.BeautifulSoup(text, 'html.parser')
     posts = collections.OrderedDict()
 
     # Strategy: Extract out the entries, which are in a table
     # with class name 'itemlist'
     items_table = soup.find('table', attrs={'class': 'itemlist'})
-    for child in items_table.children:
-        if child == '\n':
-            continue
-        # <tr> tags with classes 'spacer', 'athing', or 'morespace'
-        if child.has_attr('class'):
-            # post title with story URL, rank, and site string
-            if child['class'][0] == 'athing':
-                post_id = int(child['id'])
-                content = extract_thing_info(child)
-                posts[post_id] = Post(post_id, content=content)
-                # print("Added post with ID {} to dictionary. Content: {}".format(post_id, posts[post_id]))
-            else:
+    if items_table is not None:
+        for child in items_table.children:
+            if child == '\n':
                 continue
-        else:
-            for descendant in child.children:
-                if descendant.has_attr('class') and descendant['class'][0] == 'subtext':
-                    item_id, subtext_info = extract_subtext_info(child)
-                    p = posts[item_id]
-                    p.content.update(subtext_info)
+            # <tr> tags with classes 'spacer', 'athing', or 'morespace'
+            if child.has_attr('class'):
+                # post title with story URL, rank, and site string
+                if child['class'][0] == 'athing':
+                    post_id = int(child['id'])
+                    content = extract_thing_info(child)
+                    posts[post_id] = Post(post_id, content=content)
+                    # print("Added post with ID {} to dictionary. Content: {}".format(post_id, posts[post_id]))
+                else:
+                    continue
+            else:
+                for descendant in child.children:
+                    if descendant.has_attr('class') and descendant['class'][0] == 'subtext':
+                        item_id, subtext_info = extract_subtext_info(child)
+                        p = posts[item_id]
+                        p.content.update(subtext_info)
+    else:
+        posts = None
 
     return posts
 
@@ -90,8 +94,20 @@ def extract_thing_info(t: bs4.Tag) -> Dict:
 
     return content
 
+def get_page(page_num: int) -> str:
+    """Returns the HTML content for a given page of HN."""
+    hn_url = 'https://news.ycombinator.com/news?p='
+    page_url = hn_url + str(page_num)
+
+    return get_html(page_url)
+
 def get_html(url: str) -> str:
-    r = requests.get(url)
+    # no caching here
+    headers = {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+    }
+    r = requests.get(url, headers=headers)
     return r.text
 
 class Post(object):
