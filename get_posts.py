@@ -32,8 +32,6 @@ HN_API_ITEMS = HN_API_BASE + 'item/'
 
 def get_posts_on_page(page_num: int):
     posts = process_page(get_page(page_num))
-    if posts is None:
-        print("posts is None")
     return posts
 
 def process_page(text: str) -> Dict:
@@ -43,7 +41,7 @@ def process_page(text: str) -> Dict:
 
     # Strategy: Extract out the entries, which are in a table
     # with class name 'itemlist'
-    items_table = soup.find('table', attrs={'class': 'itemlist'})
+    items_table = soup.find('table', attrs={'class' : 'itemlist'})
     if items_table is not None:
         for child in items_table.children:
             if child == '\n':
@@ -75,7 +73,7 @@ def extract_subtext_info(t: bs4.Tag) -> Tuple[int, Dict]:
     subtext_info = dict()
 
     # get the score/points, if it exists
-    score_span = t.find('span', attrs={'class': 'score'})
+    score_span = t.find('span', attrs={'class' : 'score'})
     score = ''
     if score_span is not None:
         score_string = score_span.string
@@ -85,15 +83,30 @@ def extract_subtext_info(t: bs4.Tag) -> Tuple[int, Dict]:
     subtext_info['score'] = score
 
     # get the HN user, if it exists (it won't for jobs posts)
-    hnuser_a = t.find('a', attrs={'class': 'hnuser'})
+    hnuser_a = t.find('a', attrs={'class' : 'hnuser'})
     hnuser = hnuser_a.string if hnuser_a is not None else ''
     subtext_info['hnuser'] = hnuser
 
     # use the age of the post to get the ID of it for matching with main title
-    age_span = t.find('span', attrs={'class': 'age'})
+    age_span = t.find('span', attrs={'class' : 'age'})
     a_tag = age_span.find('a')
     # example: href="item?id=3785593"
     post_id = int(a_tag['href'].split('id=')[1])
+
+    # get the number of comments
+    item_id_string = 'item?id={}'.format(post_id)
+    comment_a = t.find_all('a', attrs={'href' : item_id_string})
+    # jobs posts don't have comments
+    if len(comment_a) == 1:
+        num_comments = 0
+    else:
+        comments = comment_a[-1].string
+        if comments == 'discuss':
+            num_comments = 0
+        else:
+            # example: "99 comments"
+            num_comments = int(comments.split('comment')[0])
+    subtext_info['total_comments'] = num_comments
 
     return post_id, subtext_info
 
