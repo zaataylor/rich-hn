@@ -1,4 +1,9 @@
+from typing import Dict, Tuple
+
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
+from pages import Page, PostPage, CommentPage, NewsPage
+
+import bs4
 
 class Item(object):
     """Represents an item on Hacker News."""
@@ -31,7 +36,7 @@ def get_item_json(post_id: int):
     p_data = requests.get(url).json()
     return p_data
 
-def extract_item_main_text(t: bs4.Tag) -> Dict:
+def extract_item_main_text(t: bs4.Tag, context: Page) -> Dict:
     """Extract the information from tag corresponding to the title of an item on HN."""              
     content = dict()
 
