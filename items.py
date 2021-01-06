@@ -42,31 +42,48 @@ def extract_item_main_text(t: bs4.Tag, context: Page) -> Dict:
 
     post_id = int(t['id'])
 
-    # get post title, associated links, if present
-    story_a = t.find('a', attrs={'class': 'storylink'})
-    if story_a is not None:
-        url = story_a['href']
-        title = story_a.string
-        content['url'] = url
-        content['title'] = title
+    # If the Page type is a CommentPage, then we already know types of
+    # tags we'll find on it
+    if isinstance(context, CommentPage):
+        content['type'] = ITEM_TYPE['COMMENT']
+    elif isinstance(context, PostPage):
+        # the post (or pollopt) on the post page will have a <tr> with class='athing', whereas
+        # any comments on the post page will have a <tr> with class='athing comtr '
+        if len(t['class']) == 2 and t['class'][1] == 'comtr':
+            content['type'] == ITEM_TYPE['COMMENT']
+        elif len(t['class']) == 1 and t['class'][0] == 'athing':
+            comment_td = t.find('td', attribute={'class': 'comment'})
+            if comment_td is not None:
+                # pollopts have a <td> with class='comment'
+                content['type'] = ITEM_TYPE['POLLOPT']
+    else:
+        # we're on one of the news pages of HN
+        pass
 
-    # get sitebit description beside main site title, if it exists
-    sitebit_space = t.find('span', attrs={'class': 'sitestr'})
-    site_bit = sitebit_space.string if sitebit_space is not None else ''
-    content['sitebit'] = site_bit
-    # empty strings considered False: all other strings are True
-    sitebit_present = bool(site_bit)
+    if content.get('type', None) is None:
+        # get post title, associated links, if present
+        story_a = t.find('a', attrs={'class': 'storylink'})
+        if story_a is not None:
+            url = story_a['href']
+            title = story_a.string
+            content['url'] = url
+            content['title'] = title
 
-    # see if votelinks are present, indicating if post is a jobs post or not
-    votelinks = t.find('td', attrs={'class': 'votelinks'})
-    votelink_present = True if votelinks is not None else False
+        # get sitebit description beside main site title, if it exists
+        sitebit_space = t.find('span', attrs={'class': 'sitestr'})
+        site_bit = sitebit_space.string if sitebit_space is not None else ''
+        content['sitebit'] = site_bit
+        sitebit_present = bool(site_bit)
 
-    # see if the tag has a div with class of 'comment'.
-    comment_div = t.find('div', attrs={'class': 'comment'})
-    comment_present = True if comment_div is not None else False
+        # see if votelinks are present, indicating if post is a jobs post or not
+        votelinks = t.find('td', attrs={'class': 'votelinks'})
+        votelink_present = True if votelinks is not None else False
 
-    content['type'] = extract_item_type(post_id, title, votelink_present,
-        sitebit_present, comment_present)
+        content['type'] = extract_item_type(post_id, title, votelink_present,
+            sitebit_present, comment_present)
+    else:
+        pass
+
 
     return content
 
@@ -113,7 +130,7 @@ def extract_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     return post_id, content
 
 def extract_item_type(post_id: int, title: str , votelink_present: bool,
-    sitebit_present: bool, commenthead_present: bool):
+    sitebit_present: bool):
     """Extracts the type of an item on HN using tag-derived information."""
 
     # Jobs posts are the only ones that don't have voting links
@@ -126,12 +143,9 @@ def extract_item_type(post_id: int, title: str , votelink_present: bool,
         # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
         # have a sitebit present since they link to some URL
         return ITEM_TYPE['STORY']
-    elif commenthead_present:
-        return ITEM_TYPE['COMMENT']
-    elif title.startswith('Poll:'):
-        return ITEM_TYPE['POLL']
     else:
         # call the API to get the type for the given post
+        # this should only catch Poll types
         p_data = get_post_by_id(post_id)
         p_type = p_data['type'].upper()
         return ITEM_TYPE[p_type]
