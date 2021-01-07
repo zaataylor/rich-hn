@@ -36,58 +36,38 @@ def get_item_json(post_id: int):
     p_data = requests.get(url).json()
     return p_data
 
-def extract_item_main_text(t: bs4.Tag, context: Page) -> Dict:
-    """Extract the information from tag corresponding to the title of an item on HN."""              
+def extract_post_item_main(t: bs4.Tag) -> Dict:
+    pass
+
+def extract_news_item_main(t: bs4.Tag) -> Dict:
+    """Extract the information from tag corresponding to the title of an item on HN News Page."""              
     content = dict()
-
     post_id = int(t['id'])
+  
+    # get post title, associated links, if present
+    story_a = t.find('a', attrs={'class': 'storylink'})
+    if story_a is not None:
+        url = story_a['href']
+        title = story_a.string
+        content['url'] = url
+        content['title'] = title
 
-    # If the Page type is a CommentPage, then we already know types of
-    # tags we'll find on it
-    if isinstance(context, CommentPage):
-        content['type'] = ITEM_TYPE['COMMENT']
-    elif isinstance(context, PostPage):
-        # the post (or pollopt) on the post page will have a <tr> with class='athing', whereas
-        # any comments on the post page will have a <tr> with class='athing comtr '
-        if len(t['class']) == 2 and t['class'][1] == 'comtr':
-            content['type'] == ITEM_TYPE['COMMENT']
-        elif len(t['class']) == 1 and t['class'][0] == 'athing':
-            comment_td = t.find('td', attribute={'class': 'comment'})
-            if comment_td is not None:
-                # pollopts have a <td> with class='comment'
-                content['type'] = ITEM_TYPE['POLLOPT']
-    else:
-        # we're on one of the news pages of HN
-        pass
+    # get sitebit description beside main site title, if it exists
+    sitebit_space = t.find('span', attrs={'class': 'sitestr'})
+    site_bit = sitebit_space.string if sitebit_space is not None else ''
+    content['sitebit'] = site_bit
+    sitebit_present = bool(site_bit)
 
-    if content.get('type', None) is None:
-        # get post title, associated links, if present
-        story_a = t.find('a', attrs={'class': 'storylink'})
-        if story_a is not None:
-            url = story_a['href']
-            title = story_a.string
-            content['url'] = url
-            content['title'] = title
+    # see if votelinks are present, indicating if post is a jobs post or not
+    votelinks = t.find('td', attrs={'class': 'votelinks'})
+    votelink_present = True if votelinks is not None else False
 
-        # get sitebit description beside main site title, if it exists
-        sitebit_space = t.find('span', attrs={'class': 'sitestr'})
-        site_bit = sitebit_space.string if sitebit_space is not None else ''
-        content['sitebit'] = site_bit
-        sitebit_present = bool(site_bit)
-
-        # see if votelinks are present, indicating if post is a jobs post or not
-        votelinks = t.find('td', attrs={'class': 'votelinks'})
-        votelink_present = True if votelinks is not None else False
-
-        content['type'] = extract_item_type(post_id, title, votelink_present,
-            sitebit_present, comment_present)
-    else:
-        pass
-
+    content['type'] = extract_item_type(post_id, title, votelink_present,
+        sitebit_present, comment_present)
 
     return content
 
-def extract_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
+def extract_news_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     """Extract information from tag corresponding to subtext of an item on HN."""
     content = dict()
 
@@ -115,7 +95,7 @@ def extract_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     # get the number of comments
     item_id_string = 'item?id={}'.format(post_id)
     comment_a = t.find_all('a', attrs={'href' : item_id_string})
-    # jobs posts don't have comments
+    # jobs posts don't have comments, so the tag will only have one <a>
     if len(comment_a) == 1:
         num_comments = 0
     else:

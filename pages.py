@@ -2,7 +2,7 @@ import collections
 from typing import Dict
 
 from common import get_html, HN_NEWS_URL
-from items import Item, extract_item_main_text, extract_item_subtext
+from items import Item, extract_news_item_main, extract_news_item_subtext
 
 import bs4
 
@@ -53,7 +53,7 @@ def process_page(html: str) -> Page:
     is_news_page = True if itemlist_table is not None else False
     if is_news_page:
         # get posts with ranks
-        ranks, items = get_news_items()
+        ranks, items = get_news_items(itemlist_table)
         # construct News object
         page = NewsPage(pg_num, ranks, items)
 
@@ -61,16 +61,23 @@ def process_page(html: str) -> Page:
     # of them are empty. This distinguishes Comment Pages from Post Pages.
     # Optimization: only check the first item with class='storyon', as
     # this corresponds to the front matter of a post
-    storyon_span = soup.find('span', 'attrs'={'class': 'storyon'})
+    storyon_span = soup.find('span', attrs={'class': 'storyon'})
     # If the first tag in the tree with class='storyon' is empty, that indicates we're
     # on a Post Page. Otherwise, we're on a Comment Page.
     is_comment_page = bool(storyon_span.contents)
     if is_comment_page:
         # construct Comment Page object
-        print('comment page!')
+        comment_tr = soup.find('tr', attrs={'class' : 'athing'})
+        comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
+        items = get_comment_items(comment_tr, comment_tree_table)
+        page = CommentPage(pg_num, items)
     else:
         # construct Post Page object
-        print('post page!')
+        post_tr_main = soup.find('tr', attrs={'class' : 'athing'})
+        post_td_subtext = soup.find('td', attrs={'class' : 'subtext'})
+        comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
+        items = get_post_items(post_tr_main, post_td_subtext, comment_tree_table)
+        page = PostPage(pg_num, items)
     
     return page
 
@@ -86,31 +93,42 @@ def get_page_number(s: bs4.BeautifulSoup):
         next_page = int(more_a['href'].split('?p=')[1]) 
         return next_page - 1
 
+def get_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
+    items = collections.OrderedDict()
+
+    # extract main comment info
+    
+
+    # extract comment tree info
+
+def get_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
+    items = collections.OrderedDict()
+    # extract main post info
+    # extract subtext info
+    # extract comment tree info
+
 def get_news_items(t: bs4.Tag) -> Dict:
     """Process HTML for a news page of HN, returning a dict of Items and dict of ranks."""
     items = collections.OrderedDict()
     ranks = dict()
 
     for child in t.children:
-        if child == '\n':
+        if child == '\n' or bool(child.contents) is False:
             continue
         # <tr> tags with class 'athing' are posts
-        if child.has_attr('class'):
+        if child.has_attr('class') and child['class'][0] == 'athing':
             # post title with story URL, rank, and site string
-            if child['class'][0] == 'athing':
-                item_id = int(child['id'])
-                content = extract_item_main_text(child, context=NewsPage)
-                ranks[item_id] = extract_rank(child)
-                items[item_id] = Item(item_id, content=content)
-            else:
-                continue
+            item_id = int(child['id'])
+            content = extract_news_item_main(child)
+            ranks[item_id] = extract_rank(child)
+            items[item_id] = Item(item_id, content=content)
         else:
-            for descendant in child.children:
-                if descendant.has_attr('class') and descendant['class'][0] == 'subtext':
-                    item_id, subtext_info = extract_item_subtext(child)
-                    # find the appropriate Post and update its content
-                    i = items[item_id]
-                    i.content.update(subtext_info)
+            # other <tr> tags are subtexts under the post
+            subtext_td = child.find('td', attrs={'class' : 'subtext'})
+            item_id, subtext_info = extract_news_item_subtext(subtext_td)
+            # find the appropriate Item and update its content
+            i = items[item_id]
+            i.content.update(subtext_info)
 
     return ranks, items
 
