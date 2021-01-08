@@ -1,7 +1,7 @@
 from typing import Dict, Tuple
+import zlib
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
-from pages import Page, PostPage, CommentPage, NewsPage
 
 import bs4
 
@@ -25,24 +25,54 @@ ITEM_TYPE = {
     'POLLOPT' : 'pollopt'
 }
 
-def get_item_html(post_id: int) -> str:
+def get_item_html(item_id: int) -> str:
     """Returns the HTML content of the HN item with the given ID."""
-    post_url = HN_ITEMS_URL + '?id={}'.format(post_id)
+    post_url = HN_ITEMS_URL + '?id={}'.format(item_id)
     return get_html(post_url)
 
-def get_item_json(post_id: int):
+def get_item_json(item_id: int) -> str:
     """Returns the JSON data of the HN item with the given ID."""
-    url = HN_API_ITEMS_URL + '{}.json'.format(post_id)
+    url = HN_API_ITEMS_URL + '{}.json'.format(item_id)
     p_data = requests.get(url).json()
     return p_data
 
-def extract_post_item_main(t: bs4.Tag) -> Dict:
+def extract_post_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
     pass
+
+def extract_comment_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
+    """Extracts details from the main comment at top of a comment page."""
+    content = dict()
+    content['type'] = ITEM_TYPE['COMMENT']
+
+    comhead_span = t.find('span', attrs={'class' : 'comhead'})
+
+    user = comhead_span.find('a', attrs={'class' : 'hnuser'})
+    content['user'] = user
+
+    par_span = comhead_span.find('span', attrs={'class' : 'par'})
+    par_a = par_span.find('a')
+    parent_id = int(par_a['href'].split('id=')[1])
+    content['parent'] = parent_id
+
+    storyon_span = comhead_span.find('span', attrs={'class' : 'storyon'})
+    storyon_a = storyon_span.find('a')
+    url = storyon_a['href']
+    content['url'] = url
+    item_id = int(url.split('id=')[1])
+
+    comment_div = t.find('div', attrs={'class' : 'comment'})
+    text = comment_div.string
+    text_bytes = bytes(text)
+    compressed_text = zlib.compress(text_bytes)
+    content['text'] = compressed_text
+
+    return item_id, content
+
 
 def extract_news_item_main(t: bs4.Tag) -> Dict:
     """Extract the information from tag corresponding to the title of an item on HN News Page."""              
     content = dict()
-    post_id = int(t['id'])
+    item_id = int(t['id'])
   
     # get post title, associated links, if present
     story_a = t.find('a', attrs={'class': 'storylink'})
@@ -62,7 +92,7 @@ def extract_news_item_main(t: bs4.Tag) -> Dict:
     votelinks = t.find('td', attrs={'class': 'votelinks'})
     votelink_present = True if votelinks is not None else False
 
-    content['type'] = extract_item_type(post_id, title, votelink_present,
+    content['type'] = extract_item_type(item_id, title, votelink_present,
         sitebit_present, comment_present)
 
     return content
@@ -90,10 +120,10 @@ def extract_news_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     age_span = t.find('span', attrs={'class' : 'age'})
     a_tag = age_span.find('a')
     # example: href="item?id=3785593"
-    post_id = int(a_tag['href'].split('id=')[1])
+    item_id = int(a_tag['href'].split('id=')[1])
 
     # get the number of comments
-    item_id_string = 'item?id={}'.format(post_id)
+    item_id_string = 'item?id={}'.format(item_id)
     comment_a = t.find_all('a', attrs={'href' : item_id_string})
     # jobs posts don't have comments, so the tag will only have one <a>
     if len(comment_a) == 1:
@@ -107,9 +137,9 @@ def extract_news_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
             num_comments = int(comments.split('comment')[0])
     content['total_comments'] = num_comments
 
-    return post_id, content
+    return item_id, content
 
-def extract_item_type(post_id: int, title: str , votelink_present: bool,
+def extract_item_type(item_id: int, title: str , votelink_present: bool,
     sitebit_present: bool):
     """Extracts the type of an item on HN using tag-derived information."""
 
@@ -126,6 +156,6 @@ def extract_item_type(post_id: int, title: str , votelink_present: bool,
     else:
         # call the API to get the type for the given post
         # this should only catch Poll types
-        p_data = get_post_by_id(post_id)
+        p_data = get_post_by_id(item_id)
         p_type = p_data['type'].upper()
         return ITEM_TYPE[p_type]
