@@ -36,11 +36,11 @@ def get_item_json(item_id: int) -> str:
     p_data = requests.get(url).json()
     return p_data
 
-def extract_post_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
+def extract_post_item_main(t: bs4.Tag) -> Dict:
     pass
 
-def extract_comment_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
-    """Extracts details from the main comment at top of a comment page."""
+def extract_comment_item_main(t: bs4.Tag) -> Dict:
+    """Extracts information from a comment on HN."""
     content = dict()
     content['type'] = ITEM_TYPE['COMMENT']
 
@@ -50,15 +50,16 @@ def extract_comment_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
     content['user'] = user
 
     par_span = comhead_span.find('span', attrs={'class' : 'par'})
-    par_a = par_span.find('a')
-    parent_id = int(par_a['href'].split('id=')[1])
-    content['parent'] = parent_id
+    if par_span.string is not None:
+        par_a = par_span.find('a')
+        parent_id = int(par_a['href'].split('id=')[1])
+        content['parent'] = parent_id
 
     storyon_span = comhead_span.find('span', attrs={'class' : 'storyon'})
-    storyon_a = storyon_span.find('a')
-    url = storyon_a['href']
-    content['url'] = url
-    item_id = int(url.split('id=')[1])
+    if storyon_span.string is not None:
+        storyon_a = storyon_span.find('a')
+        url = storyon_a['href']
+        content['url'] = url
 
     comment_div = t.find('div', attrs={'class' : 'comment'})
     text = comment_div.string
@@ -66,8 +67,7 @@ def extract_comment_item_main(t: bs4.Tag) -> Tuple[int, Dict]:
     compressed_text = zlib.compress(text_bytes)
     content['text'] = compressed_text
 
-    return item_id, content
-
+    return content
 
 def extract_news_item_main(t: bs4.Tag) -> Dict:
     """Extract the information from tag corresponding to the title of an item on HN News Page."""              
@@ -97,7 +97,7 @@ def extract_news_item_main(t: bs4.Tag) -> Dict:
 
     return content
 
-def extract_news_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
+def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     """Extract information from tag corresponding to subtext of an item on HN."""
     content = dict()
 
