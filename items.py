@@ -36,10 +36,7 @@ def get_item_json(item_id: int) -> str:
     p_data = requests.get(url).json()
     return p_data
 
-def extract_post_item_main(t: bs4.Tag) -> Dict:
-    pass
-
-def extract_comment_item_main(t: bs4.Tag) -> Dict:
+def extract_comment_info(t: bs4.Tag) -> Dict:
     """Extracts information from a comment on HN."""
     content = dict()
     content['type'] = ITEM_TYPE['COMMENT']
@@ -47,7 +44,7 @@ def extract_comment_item_main(t: bs4.Tag) -> Dict:
     comhead_span = t.find('span', attrs={'class' : 'comhead'})
 
     user = comhead_span.find('a', attrs={'class' : 'hnuser'})
-    content['user'] = user
+    content['user'] = user.string
 
     par_span = comhead_span.find('span', attrs={'class' : 'par'})
     if par_span.string is not None:
@@ -61,15 +58,33 @@ def extract_comment_item_main(t: bs4.Tag) -> Dict:
         url = storyon_a['href']
         content['url'] = url
 
-    comment_div = t.find('div', attrs={'class' : 'comment'})
-    text = comment_div.string
-    text_bytes = bytes(text)
-    compressed_text = zlib.compress(text_bytes)
-    content['text'] = compressed_text
+    commtext_span = t.find('span', attrs={'class' : 'commtext c00'})
+    text = extract_comment_text(commtext_span)
+    content['text'] = text
 
     return content
 
-def extract_news_item_main(t: bs4.Tag) -> Dict:
+def extract_comment_text(comment_text_span: bs4.Tag) -> str:
+    fins = ''
+    for index, tag in enumerate(comment_text_span.contents):
+        if isinstance(tag, bs4.NavigableString):
+            fins += tag.string + '\n'
+        elif tag.name == 'p':
+            temps = tag.__str__()
+            if index == 1:
+                temps = temps.replace('<p>', '\n')
+            else:
+                temps = temps.replace('<p>', '\n\n')
+            temps = temps.replace('</p>', '')
+            # for usage with Rich: 
+            # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#syntax
+            temps = temps.replace('<i>', '[italic]')
+            temps = temps.replace('</i>', '[/italic]')
+            fins += temps
+    
+    return fins
+
+def extract_post_item_main(t: bs4.Tag) -> Dict:
     """Extract the information from tag corresponding to the title of an item on HN News Page."""              
     content = dict()
     item_id = int(t['id'])
