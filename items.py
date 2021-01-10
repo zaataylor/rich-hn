@@ -67,10 +67,10 @@ def extract_comment_info(t: bs4.Tag) -> Dict:
 def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     fins = ''
     for index, tag in enumerate(comment_text_span.contents):
+        temps = ii.__str__()
         if isinstance(tag, bs4.NavigableString):
             fins += tag.string + '\n'
         elif tag.name == 'p':
-            temps = tag.__str__()
             if index == 1:
                 temps = temps.replace('<p>', '\n')
             else:
@@ -81,6 +81,11 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             temps = temps.replace('<i>', '[italic]')
             temps = temps.replace('</i>', '[/italic]')
             fins += temps
+        elif tag.name == 'a':
+            url = tag['href']
+            # make the URL link: 
+            # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#links
+
     
     return fins
 
