@@ -1,5 +1,6 @@
 from typing import Dict, Tuple
 import zlib
+import re
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
 
@@ -67,15 +68,15 @@ def extract_comment_info(t: bs4.Tag) -> Dict:
 def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     fins = ''
     for index, tag in enumerate(comment_text_span.contents):
-        temps = ii.__str__()
         if isinstance(tag, bs4.NavigableString):
-            fins += tag.string + '\n'
+            fins += tag.string
         elif tag.name == 'p':
-            if index == 1:
-                temps = temps.replace('<p>', '\n')
-            else:
-                temps = temps.replace('<p>', '\n\n')
-            temps = temps.replace('</p>', '')
+            temps = tag.__str__()
+            # if index == 1:
+            #     temps = temps.replace('<p>', ' ')
+            # else:
+            #     temps = temps.replace('<p>', '\n')
+            # temps = temps.replace('</p>', '')
             # for usage with Rich: 
             # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#syntax
             temps = temps.replace('<i>', '[italic]')
@@ -85,7 +86,12 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             url = tag['href']
             # make the URL link: 
             # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#links
+            url_string = '[link={}]{}[/link]'.format(url, url)
+            fins += url_string
 
+    # remove <a></a> tags using regex
+    # ^<a[a-z][A-Z][0-9]/*</a>$
+    # insert newlines where <p> tags are    
     
     return fins
 
