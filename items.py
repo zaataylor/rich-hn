@@ -90,8 +90,8 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             fins += url_string
 
     # remove <a></a> tags using regex
-    # ^<a[a-z][A-Z][0-9]/*</a>$
-    # insert newlines where <p> tags are    
+    # re.findall(r'(<a href="[a-zA-Z0-9:~/.-]+" rel="nofollow">[a-zA-Z0-9:~/.-]+</a>)'
+    # insert newlines where <p> tags are
     
     return fins
 
