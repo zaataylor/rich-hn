@@ -72,12 +72,7 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             fins += tag.string
         elif tag.name == 'p':
             temps = tag.__str__()
-            # if index == 1:
-            #     temps = temps.replace('<p>', ' ')
-            # else:
-            #     temps = temps.replace('<p>', '\n')
-            # temps = temps.replace('</p>', '')
-            # for usage with Rich: 
+            # For usage with Rich: 
             # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#syntax
             temps = temps.replace('<i>', '[italic]')
             temps = temps.replace('</i>', '[/italic]')
@@ -89,9 +84,20 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             url_string = '[link={}]{}[/link]'.format(url, url)
             fins += url_string
 
-    # remove <a></a> tags using regex
-    # re.findall(r'(<a href="[a-zA-Z0-9:~/.-]+" rel="nofollow">[a-zA-Z0-9:~/.-]+</a>)'
-    # insert newlines where <p> tags are
+    # Replace <a href="...">...</a> tags inside of <p> elements with the other link 
+    # style required by rich, using regex.
+    # This regex pattern matches a string '<a href="', followed by one or more of the 
+    # valid characters that can be in a URL (RFC 3986: https://tools.ietf.org/html/rfc3986#section-2),
+    # followed by the string ' rel="nofollow">', followed by >= 1 valid URL characters, 
+    # followed by '</a>', which indicates the end of an anchor tag.
+    fins = re.sub(
+        r'<a href="([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)</a>',
+        r'[link=\1]\2[/link]',
+        fins)
+
+    # insert newlines where <p> tags are, and empty strings where '</p>' are
+    fins = fins.replace('<p>', '\n\n')
+    fins = fins.replace('</p>', '')
     
     return fins
 
