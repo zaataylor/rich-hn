@@ -37,19 +37,22 @@ class PostPage(Page):
     """Represents a page containing the frontmatter of a post on HN, as well as any associated comments."""
     pass
 
+# The main processing function: this function takes the
+# HTML representing any given page on HN and uses indicators
+# in the HTML to determine how to process the page.
 def process_page(html: str) -> Page:
-    """Processes HTML of a page on HN, returning a Page."""
+    """Process HTML of a page on HN and return a Page."""
     page = None
 
     soup = bs4.BeautifulSoup(html, 'html.parser')
-    pg_num = get_page_number(soup)
+    pg_num = extract_page_number(soup)
 
     # search for <table> with class='itemlist', characteristic of a News Page
     itemlist_table = soup.find('table', attrs={'class': 'itemlist'})
     is_news_page = True if itemlist_table is not None else False
     if is_news_page:
         # get posts with ranks
-        ranks, items = get_news_items(itemlist_table)
+        ranks, items = extract_news_items(itemlist_table)
         # construct News object
         page = NewsPage(pg_num, ranks, items)
 
@@ -65,20 +68,25 @@ def process_page(html: str) -> Page:
         # construct Comment Page object
         comment_tr = soup.find('tr', attrs={'class' : 'athing'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        items = get_comment_items(comment_tr, comment_tree_table)
+        items = extract_comment_items(comment_tr, comment_tree_table)
         page = CommentPage(pg_num, items)
     else:
         # construct Post Page object
         post_tr_main = soup.find('tr', attrs={'class' : 'athing'})
         post_td_subtext = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        items = get_post_items(post_tr_main, post_td_subtext, comment_tree_table)
+        items = extract_post_items(post_tr_main, post_td_subtext, comment_tree_table)
         page = PostPage(pg_num, items)
     
     return page
 
-def get_page_number(s: bs4.BeautifulSoup):
-    """Returns the page number for a given page on HN."""
+# Extraction functions: these functions extract Items and information
+# related to them, such as page number, ranking, etc. from the HTML
+# corresponding to a given page on HN. To extract individual items,
+# a lot of these function call other, Item abstraction level functions
+# located in items.py
+def extract_page_number(s: bs4.BeautifulSoup):
+    """Return the page number for a given page."""
     more_a = s.find('a', attrs={'class': 'morelink'})
     if more_a is None:
         return DEFAULT_PAGE_NUM
@@ -89,7 +97,8 @@ def get_page_number(s: bs4.BeautifulSoup):
         next_page = int(more_a['href'].split('p=')[1])
         return next_page - 1
 
-def get_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
+def extract_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
+    """Process HTML for a comment page."""
     items = collections.OrderedDict()
 
     # extract main comment info
@@ -103,7 +112,8 @@ def get_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
 
     return items
 
-def get_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
+def extract_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
+    """Process HTML for a post page."""
     items = collections.OrderedDict()
     
     # extract main post info
@@ -122,8 +132,8 @@ def get_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
 
     return items
 
-def get_news_items(t: bs4.Tag) -> Dict:
-    """Process HTML for a news page of HN, returning a dict of Items and dict of ranks."""
+def extract_news_items(t: bs4.Tag) -> Dict:
+    """Process HTML for a news page."""
     items = collections.OrderedDict()
     ranks = dict()
 
@@ -148,13 +158,16 @@ def get_news_items(t: bs4.Tag) -> Dict:
     return ranks, items
 
 def extract_rank(t: bs4.Tag) -> int:
-    """Extract rank from tag representing title of a post on a page of HN."""
+    """Extract rank from an item on a news page."""
     # get rank, if it exists
     rank_span = t.find('span', attrs={'class': 'rank'})
     rank = int(rank_span.string.split('.')[0]) if rank_span.string else ''
     return rank
 
+# Getting function: This function gets the raw HTML content
+# of a given news page on HN, returning it for subsequent use by
+# the extraction functions above.
 def get_news_page_by_num(page_num: int) -> str:
-    """Returns the HTML content for a given news page of HN."""
+    """Return the HTML content of a given news page."""
     page_url = HN_NEWS_URL + '?p={}'.format(page_num)
     return get_html(page_url)

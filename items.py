@@ -27,19 +27,10 @@ ITEM_TYPE = {
     'POLLOPT' : 'pollopt'
 }
 
-def get_item_html_by_id(item_id: int) -> str:
-    """Returns the HTML content of the HN item with the given ID."""
-    post_url = HN_ITEMS_URL + '?id={}'.format(item_id)
-    return get_html(post_url)
-
-def get_item_json_by_id(item_id: int) -> str:
-    """Returns the JSON data of the HN item with the given ID."""
-    url = HN_API_ITEMS_URL + '{}.json'.format(item_id)
-    p_data = requests.get(url).json()
-    return p_data
-
+# Extraction functions: here, we extract useful information from
+# the HTML or JSON obtained from the HN site directly or the HN API.
 def extract_comment_info(t: bs4.Tag) -> Dict:
-    """Extracts information from a comment on HN."""
+    """Extract information from a comment on HN."""
     content = dict()
     content['type'] = ITEM_TYPE['COMMENT']
 
@@ -67,7 +58,7 @@ def extract_comment_info(t: bs4.Tag) -> Dict:
     return content
 
 def extract_comment_text(comment_text_span: bs4.Tag) -> str:
-    """Extracts the text content of a comment."""
+    """Extract the text content of a comment."""
     fins = ''
     for tag in comment_text_span.contents:
         if tag.name != 'div':
@@ -106,7 +97,7 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     return fins
 
 def extract_post_item_main(t: bs4.Tag) -> Dict:
-    """Extract the information from tag corresponding to the title of an item on HN News Page."""              
+    """Extract the information from the main/header content of a post."""              
     content = dict()
     item_id = int(t['id'])
   
@@ -133,29 +124,8 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
 
     return content
 
-def extract_item_type(item_id: int, title: str , votelink_present: bool,
-    sitebit_present: bool):
-    """Extracts the type of an item on HN using tag-derived information."""
-
-    # Jobs posts are the only ones that don't have voting links
-    if not votelink_present:
-        return ITEM_TYPE['JOB']
-    elif title.startswith('Ask HN:') or title.startswith('Tell HN:') or \
-        title.startswith('Show HN:'):
-        return ITEM_TYPE['STORY']
-    elif sitebit_present:
-        # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
-        # have a sitebit present since they link to some URL
-        return ITEM_TYPE['STORY']
-    else:
-        # call the API to get the type for the given post
-        # this should only catch Poll types
-        p_data = get_item_json_by_id(item_id)
-        p_type = p_data['type'].upper()
-        return ITEM_TYPE[p_type]
-
 def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
-    """Extract information from tag corresponding to subtext of an item on HN."""
+    """Extract information from the subtext of a post."""
     content = dict()
 
     # get the score/points, if it exists
@@ -195,3 +165,38 @@ def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     content['total_comments'] = num_comments
 
     return item_id, content
+
+def extract_item_type(item_id: int, title: str , votelink_present: bool,
+    sitebit_present: bool):
+    """Extract the type of an item."""
+
+    # Jobs posts are the only ones that don't have voting links
+    if not votelink_present:
+        return ITEM_TYPE['JOB']
+    elif title.startswith('Ask HN:') or title.startswith('Tell HN:') or \
+        title.startswith('Show HN:'):
+        return ITEM_TYPE['STORY']
+    elif sitebit_present:
+        # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
+        # have a sitebit present since they link to some URL
+        return ITEM_TYPE['STORY']
+    else:
+        # call the API to get the type for the given post
+        # this should only catch Poll types
+        p_data = get_item_json_by_id(item_id)
+        p_type = p_data['type'].upper()
+        return ITEM_TYPE[p_type]
+
+# Getting functions: these functions make the HTTP requests to
+# HN or the HN API to get raw HTML or JSON that will be used by
+# the extraction functions
+def get_item_html_by_id(item_id: int) -> str:
+    """Return the HTML content of the item with the given ID."""
+    post_url = HN_ITEMS_URL + '?id={}'.format(item_id)
+    return get_html(post_url)
+
+def get_item_json_by_id(item_id: int) -> str:
+    """Return the JSON data of the item with the given ID."""
+    url = HN_API_ITEMS_URL + '{}.json'.format(item_id)
+    p_data = requests.get(url).json()
+    return p_data
