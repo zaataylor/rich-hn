@@ -1,10 +1,11 @@
 from typing import Dict, Tuple
-import zlib
 import re
+import html
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
 
 import bs4
+import requests
 
 class Item(object):
     """Represents an item on Hacker News."""
@@ -26,12 +27,12 @@ ITEM_TYPE = {
     'POLLOPT' : 'pollopt'
 }
 
-def get_item_html(item_id: int) -> str:
+def get_item_html_by_id(item_id: int) -> str:
     """Returns the HTML content of the HN item with the given ID."""
     post_url = HN_ITEMS_URL + '?id={}'.format(item_id)
     return get_html(post_url)
 
-def get_item_json(item_id: int) -> str:
+def get_item_json_by_id(item_id: int) -> str:
     """Returns the JSON data of the HN item with the given ID."""
     url = HN_API_ITEMS_URL + '{}.json'.format(item_id)
     p_data = requests.get(url).json()
@@ -66,45 +67,42 @@ def extract_comment_info(t: bs4.Tag) -> Dict:
     return content
 
 def extract_comment_text(comment_text_span: bs4.Tag) -> str:
+    """Extracts the text content of a comment."""
     fins = ''
-    for index, tag in enumerate(comment_text_span.contents):
-        if isinstance(tag, bs4.NavigableString):
-            fins += tag.string
-        elif tag.name == 'p':
-            temps = tag.__str__()
-            # For usage with Rich: 
-            # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#syntax
-            temps = temps.replace('<i>', '[italic]')
-            temps = temps.replace('</i>', '[/italic]')
-            fins += temps
-        elif tag.name == 'a':
-            url = tag['href']
-            # make the URL link: 
-            # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#links
-            url_string = '[link={}]{}[/link]'.format(url, url)
-            fins += url_string
-        elif tag.name == 'pre':
-            blockquote_code = tag.find('code')
-            # I'm adding a custom tag here so that I can quickly identify a blockquote,
-            # then call the rich Markdown component on this part of the string to render
-            # it properly.
-            fins += '[md]' + blockquote_code.string + '[/md]'
+    for tag in comment_text_span.contents:
+        if tag.name != 'div':
+            # since we're using the raw string representation, which would include
+            # named and numeric character references such as &gt; and &lt;, we want
+            # to reprsent these as actual Unicode entities (i.e. > and <, respectively)
+            fins += html.unescape(tag.__str__())
+
+    # Mark where <i> tags were so Rich can make them italic
+    # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#syntax
+    fins = fins.replace('<i>', '[italic]')
+    fins = fins.replace('</i>', '[/italic]')
+
+    # Mark where blockquotes/code blocks are with a custom tag 
+    # for rendering later on
+    fins = fins.replace('<pre><code>', '[md]')
+    fins = fins.replace('</code></pre>', '[/md]')
 
     # Replace <a href="...">...</a> tags inside of <p> elements with the other link 
     # style required by rich, using regex.
     # This regex pattern matches a string '<a href="', followed by one or more of the 
-    # valid characters that can be in a URL (RFC 3986: https://tools.ietf.org/html/rfc3986#section-2),
+    # valid characters that can be in a URL 
+    # (RFC 3986: https://tools.ietf.org/html/rfc3986#section-2),
     # followed by the string ' rel="nofollow">', followed by >= 1 valid URL characters, 
-    # followed by '</a>', which indicates the end of an anchor tag.
+    # followed by '</a>', which indicates the end of an anchor tag
     fins = re.sub(
         r'<a href="([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)</a>',
         r'[link=\1]\2[/link]',
         fins)
 
-    # insert newlines where <p> tags are, and empty strings where '</p>' are
+    # Insert newlines where <p> tags are,
+    # and empty strings where '</p>' are
     fins = fins.replace('<p>', '\n\n')
     fins = fins.replace('</p>', '')
-    
+
     return fins
 
 def extract_post_item_main(t: bs4.Tag) -> Dict:
@@ -131,7 +129,7 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
     votelink_present = True if votelinks is not None else False
 
     content['type'] = extract_item_type(item_id, title, votelink_present,
-        sitebit_present, comment_present)
+        sitebit_present)
 
     return content
 
@@ -194,6 +192,6 @@ def extract_item_type(item_id: int, title: str , votelink_present: bool,
     else:
         # call the API to get the type for the given post
         # this should only catch Poll types
-        p_data = get_post_by_id(item_id)
+        p_data = get_item_json_by_id(item_id)
         p_type = p_data['type'].upper()
         return ITEM_TYPE[p_type]
