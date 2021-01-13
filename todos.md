@@ -8,6 +8,7 @@
         - [] Jobs
     - [] Figure out how to extract comment trees under a given post
     - [] Figure out where and how to store comment trees
+    - Figure out where to take advantage of caching
 - Display
     - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
     - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
