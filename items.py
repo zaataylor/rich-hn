@@ -83,6 +83,12 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
             # https://rich.readthedocs.io/en/latest/markup.html?highlight=italic#links
             url_string = '[link={}]{}[/link]'.format(url, url)
             fins += url_string
+        elif tag.name == 'pre':
+            blockquote_code = tag.find('code')
+            # I'm adding a custom tag here so that I can quickly identify a blockquote,
+            # then call the rich Markdown component on this part of the string to render
+            # it properly.
+            fins += '[md]' + blockquote_code.string + '[/md]'
 
     # Replace <a href="...">...</a> tags inside of <p> elements with the other link 
     # style required by rich, using regex.
