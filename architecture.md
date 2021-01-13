@@ -25,7 +25,7 @@ This document describes the architecture of the `rich-hn` reader app.
             items: dict
         }
         ```
-        where `items` is a `dict` that has integer keys and `Item` values. The integer keys will correspond to `Item` IDs, and the values will be the `Item` with the ID identified by the key.
+        where `items` is a `dict` that has integer keys and `Item` values. The integer keys will correspond to `Item` IDs, and the values will be the `Item` with the ID identified by the key. The `pg_number` field is used to indicate the current page on HN.
 
 - Display
     - TODO
