@@ -2,7 +2,7 @@ import collections
 from typing import Dict
 
 from common import get_html, HN_NEWS_URL
-from items import Item, extract_news_item_main, extract_news_item_subtext
+from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info
 
 import bs4
 
@@ -18,7 +18,7 @@ class Page(object):
         self.items = items
     
     def __str__(self):
-        return str(items)
+        return str(self.items)
 
 class NewsPage(Page):
     """Represents one of the news pages on Hacker News."""
@@ -36,10 +36,6 @@ class CommentPage(Page):
 class PostPage(Page):
     """Represents a page containing the frontmatter of a post on HN, as well as any associated comments."""
     pass
-
-# def get_page(page_num: int):
-#     page = process_page(get_page_html(page_num))
-#     return page
 
 def process_page(html: str) -> Page:
     """Processes HTML of a page on HN, returning a Page."""
@@ -83,29 +79,48 @@ def process_page(html: str) -> Page:
 
 def get_page_number(s: bs4.BeautifulSoup):
     """Returns the page number for a given page on HN."""
-    more_a = soup.find('a', attrs={'class': 'morelink'})
+    more_a = s.find('a', attrs={'class': 'morelink'})
     if more_a is None:
         return DEFAULT_PAGE_NUM
     else:
         # If there's a "More" link at the bottom of the page, the
         # current page number is 1 less than the page number listed
         # in the "More" link
-        next_page = int(more_a['href'].split('?p=')[1]) 
+        next_page = int(more_a['href'].split('p=')[1])
         return next_page - 1
 
 def get_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
     items = collections.OrderedDict()
 
     # extract main comment info
-    
+    item_id = int(main['id'])
+    content = extract_comment_info(main)
+    items[item_id] = content
 
     # extract comment tree info
+    # comment_tree_info = extract_comment_tree_info(tree)
+    # items.update(comment_tree_info)
+
+    return items
 
 def get_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
     items = collections.OrderedDict()
+    
     # extract main post info
+    item_id = int(main['id'])
+    content = extract_post_item_main(main)
+    items[item_id] = Item(item_id, content=content)
+
     # extract subtext info
+    item_id, subtext_info = extract_post_item_subtext(subtext)
+    i = items[item_id]
+    i.content.update(subtext_info)
+
     # extract comment tree info
+    # comment_tree_info = extract_comment_tree_info(tree)
+    # items.update(comment_tree_info)
+
+    return items
 
 def get_news_items(t: bs4.Tag) -> Dict:
     """Process HTML for a news page of HN, returning a dict of Items and dict of ranks."""
@@ -119,27 +134,27 @@ def get_news_items(t: bs4.Tag) -> Dict:
         if child.has_attr('class') and child['class'][0] == 'athing':
             # post title with story URL, rank, and site string
             item_id = int(child['id'])
-            content = extract_news_item_main(child)
+            content = extract_post_item_main(child)
             ranks[item_id] = extract_rank(child)
             items[item_id] = Item(item_id, content=content)
         else:
             # other <tr> tags are subtexts under the post
             subtext_td = child.find('td', attrs={'class' : 'subtext'})
-            item_id, subtext_info = extract_news_item_subtext(subtext_td)
+            item_id, subtext_info = extract_post_item_subtext(subtext_td)
             # find the appropriate Item and update its content
             i = items[item_id]
             i.content.update(subtext_info)
 
     return ranks, items
 
-def extract_rank(t: bs4.Tag):
+def extract_rank(t: bs4.Tag) -> int:
     """Extract rank from tag representing title of a post on a page of HN."""
     # get rank, if it exists
     rank_span = t.find('span', attrs={'class': 'rank'})
     rank = int(rank_span.string.split('.')[0]) if rank_span.string else ''
     return rank
 
-def get_page_html(page_num: int) -> str:
+def get_news_page_by_num(page_num: int) -> str:
     """Returns the HTML content for a given news page of HN."""
     page_url = HN_NEWS_URL + '?p={}'.format(page_num)
     return get_html(page_url)
