@@ -1,0 +1,20 @@
+# TODOs
+- Data Model
+    - [] Figure out how to get text content of items that are:
+        - [&check;] Comments
+        - [] Polls
+        - [] Ask HNs
+        - [] Show HNs
+        - [] Jobs
+    - [] Figure out how to extract comment trees under a given post
+    - [] Figure out where and how to store comment trees
+- Display
+    - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
+    - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
+    - [] Figure out how to display posts in a table or list style
+- UX
+    - [] Figure out how to support Vim standard keybindings (`h`, `j`, `k`, `l`) for scrolling up and down, and navigating forward and backward through pages using.
+    - [] Figure out how to use up and down arrow keys for scrolling up and down, and navigating to forward and backward through pages using the left and right arrow keys.
+    - [] Figure out how to make the keybindings for scrolling and navigating customizable
+    - [] Figure out how to display different colors for `Ask HN`, `Show HN`, `stories`, and `jobs` posts.
+    - [] Figure out how to do manual updating of a page's contents using a specific keybinding.
