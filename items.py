@@ -133,6 +133,27 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
 
     return content
 
+def extract_item_type(item_id: int, title: str , votelink_present: bool,
+    sitebit_present: bool):
+    """Extracts the type of an item on HN using tag-derived information."""
+
+    # Jobs posts are the only ones that don't have voting links
+    if not votelink_present:
+        return ITEM_TYPE['JOB']
+    elif title.startswith('Ask HN:') or title.startswith('Tell HN:') or \
+        title.startswith('Show HN:'):
+        return ITEM_TYPE['STORY']
+    elif sitebit_present:
+        # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
+        # have a sitebit present since they link to some URL
+        return ITEM_TYPE['STORY']
+    else:
+        # call the API to get the type for the given post
+        # this should only catch Poll types
+        p_data = get_item_json_by_id(item_id)
+        p_type = p_data['type'].upper()
+        return ITEM_TYPE[p_type]
+
 def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     """Extract information from tag corresponding to subtext of an item on HN."""
     content = dict()
@@ -174,24 +195,3 @@ def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     content['total_comments'] = num_comments
 
     return item_id, content
-
-def extract_item_type(item_id: int, title: str , votelink_present: bool,
-    sitebit_present: bool):
-    """Extracts the type of an item on HN using tag-derived information."""
-
-    # Jobs posts are the only ones that don't have voting links
-    if not votelink_present:
-        return ITEM_TYPE['JOB']
-    elif title.startswith('Ask HN:') or title.startswith('Tell HN:') or \
-        title.startswith('Show HN:'):
-        return ITEM_TYPE['STORY']
-    elif sitebit_present:
-        # "normal" story posts on HN that don't fall into the Ask/Show/Tell HN
-        # have a sitebit present since they link to some URL
-        return ITEM_TYPE['STORY']
-    else:
-        # call the API to get the type for the given post
-        # this should only catch Poll types
-        p_data = get_item_json_by_id(item_id)
-        p_type = p_data['type'].upper()
-        return ITEM_TYPE[p_type]
