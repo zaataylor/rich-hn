@@ -57,7 +57,7 @@ class PostPage(Page):
 # The main processing function: this function takes the
 # HTML representing any given page on HN and uses indicators
 # in the HTML to determine how to process the page.
-def process_page(html: str) -> Page:
+def extract_page(html: str) -> Page:
     """Process HTML of a page on HN and return a Page."""
     page = None
 
