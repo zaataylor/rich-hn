@@ -1,21 +1,18 @@
 from typing import Dict
+from collections import OrderedDict
 
 class Tree(object):
     """A generic tree."""
     data = None
     node_id = None
-    children: Dict = None
+    children: OrderedDict = None
 
-    def __init__(self, node_id, data = None, children: Dict = None):
+    def __init__(self, node_id, data = None, children: OrderedDict = None):
         self.node_id = node_id
-
-        if data is None:
-            self.data = dict()
-        else:
-            self.data = data
+        self.data = data
         
         if children is None:
-            self.children = dict()
+            self.children = OrderedDict()
         else:
             self.children = children
 
