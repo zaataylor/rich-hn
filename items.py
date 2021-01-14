@@ -1,8 +1,10 @@
 from typing import Dict, Tuple
 import re
 import html
+from collections import OrderedDict
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
+from tree import Tree
 
 import bs4
 import requests
@@ -29,12 +31,12 @@ ITEM_TYPE = {
 
 # Extraction functions: here, we extract useful information from
 # the HTML or JSON obtained from the HN site directly or the HN API.
-def extract_comment_info(t: bs4.Tag) -> Dict:
+def extract_comment_info(comment_tr: bs4.Tag) -> Dict:
     """Extract information from a comment on HN."""
     content = dict()
     content['type'] = ITEM_TYPE['COMMENT']
 
-    comhead_span = t.find('span', attrs={'class' : 'comhead'})
+    comhead_span = comment_tr.find('span', attrs={'class' : 'comhead'})
 
     user = comhead_span.find('a', attrs={'class' : 'hnuser'})
     content['user'] = user.string
@@ -51,7 +53,7 @@ def extract_comment_info(t: bs4.Tag) -> Dict:
         url = storyon_a['href']
         content['url'] = url
 
-    commtext_span = t.find('span', attrs={'class' : 'commtext c00'})
+    commtext_span = comment_tr.find('span', attrs={'class' : 'commtext c00'})
     text = extract_comment_text(commtext_span)
     content['text'] = text
 
@@ -95,6 +97,46 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     fins = fins.replace('</p>', '')
 
     return fins
+
+def make_comment_tree_dict(comment_tree_table: bs4.Tag) -> Dict:
+    """Generates a dictionary representing a comment tree."""
+    raw_comments = comment_tree_table.find_all('tr', attrs={'class' : 'comtr'})
+    indents = list()
+    ids = list()
+    items = list()
+    for comment in raw_comments:
+        # get indent, indicating nesting amount
+        img = comment.find('img', attrs={'src' : 's.gif'})
+        indent = int(img['width'])
+        indents.append(indent)
+
+        # get comment ID
+        comment_id = int(comment['id'])
+        ids.append(comment_id)
+
+        # get comment content and create an Item with it
+        content = extract_comment_info(comment)
+        content.update(extract_comment_text(comment))
+        i = Item(comment_id, content=content)
+        items.append(i)
+
+    # normalize indents by minimum value
+    min_indent = min(indents)
+    indents = [int(indent_val / min_indent) for indent_val in indents]
+
+    # zip up iterables and create an OrderedDict from them
+    zipped_data = zip(ids, indents, items)
+    comments = OrderedDict()
+    for comment_id, indent_val, item in zipped_data:
+        comments[comment_id] = {'indent': indent_val, 'item':item }
+    return comments
+
+def extract_comment_tree(item_id: int, comment_tree_dict: OrderedDict) -> Tree:
+    """Extracts the comment tree for a given item."""
+    tree = Tree(node_id=item_id)
+    # TODO: implement recursive tree creation logic here
+    # one important condition will be the current indentation level
+    return tree
 
 def extract_post_item_main(t: bs4.Tag) -> Dict:
     """Extract the information from the main/header content of a post."""              
