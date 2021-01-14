@@ -54,7 +54,7 @@ class PostPage(Page):
         self.item = item
         self.comments = comments
 
-# The main processing function: this function takes the
+# The main extraction function: this function takes the
 # HTML representing any given page on HN and uses indicators
 # in the HTML to determine how to process the page.
 def extract_page(html: str) -> Page:
