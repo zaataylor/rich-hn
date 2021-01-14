@@ -8,14 +8,17 @@
         - [] Jobs
     - [] Figure out how to extract comment trees under a given post
     - [] Figure out where and how to store comment trees
-    - Figure out where to take advantage of caching
+    - [] Figure out where to take advantage of caching
+    - [] Add pre-emptive check in `pages.extract_page_number` to use the `<span>` with class = `pagetop` to check if there is a page number at the top of the HN page.
 - Display
     - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
     - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
     - [] Figure out how to display posts in a table or list style
+    - [] Figure out how to go about displaying empty pages. For instance, if the number of comments on a given page only spans two pages, and a user tries to navigate to the nonexistent third page, what should happens?
 - UX
     - [] Figure out how to support Vim standard keybindings (`h`, `j`, `k`, `l`) for scrolling up and down, and navigating forward and backward through pages using.
     - [] Figure out how to use up and down arrow keys for scrolling up and down, and navigating to forward and backward through pages using the left and right arrow keys.
     - [] Figure out how to make the keybindings for scrolling and navigating customizable
     - [] Figure out how to display different colors for `Ask HN`, `Show HN`, `stories`, and `jobs` posts.
     - [] Figure out how to do manual updating of a page's contents using a specific keybinding.
+    - [] Figure out a reasonable experience for when a user tries to navigate to a page that doesn't exist, such as navigating to the third page of comments for a post that only has two pages of comments.
