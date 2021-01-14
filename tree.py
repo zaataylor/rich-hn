@@ -45,8 +45,17 @@ class Tree(object):
     def get_child(self, child_id):
         return self.children.get(child_id, None)
 
-    def add_child(self, child_id, data):
+    def add_child(self, child_id, entry):
+        if isinstance(entry, Tree):
+            self.add_child_tree(child_id, entry)
+        else:
+            self.add_child_data(child_id, entry)
+    
+    def add_child_data(self, child_id, data):
         self.children[child_id] = Tree(node_id=child_id, data=data)
+
+    def add_child_tree(self, child_id, tr: Tree):
+        self.children[child_id] = tr
 
     def remove_child(self, child_id):
         return self.children.pop(child_id, None)
