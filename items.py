@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import re
 import html
 from collections import OrderedDict
@@ -28,6 +28,9 @@ ITEM_TYPE = {
     'POLL' : 'poll',
     'POLLOPT' : 'pollopt'
 }
+
+DUMMY_ITEM = None
+DUMMY_ID = -1
 
 # Extraction functions: here, we extract useful information from
 # the HTML or JSON obtained from the HN site directly or the HN API.
@@ -98,8 +101,8 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
 
     return fins
 
-def make_comment_tree_dict(comment_tree_table: bs4.Tag) -> Dict:
-    """Generates a dictionary representing a comment tree."""
+def make_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], List[int], List[Item], List[slice]]:
+    """Generates data structures representing a comment tree."""
     raw_comments = comment_tree_table.find_all('tr', attrs={'class' : 'comtr'})
     indents = list()
     ids = list()
@@ -120,23 +123,66 @@ def make_comment_tree_dict(comment_tree_table: bs4.Tag) -> Dict:
         i = Item(comment_id, content=content)
         items.append(i)
 
-    # normalize indents by minimum value
+    # get minimum indent
     min_indent = min(indents)
-    indents = [int(indent_val / min_indent) for indent_val in indents]
+    # get indices of minimum indent over all the comments. These correspond to 
+    # the first-level children of the main post/comment on a page, and will allow
+    # us to optimize slices we make over a particular range of comments.
+    min_indent_indices = list()
+    for index, indent in enumerate(indents):
+        if indent == min_indent:
+            min_indent_indices.append(index)
+    
+    # a list of slice objects needed for later
+    slices = list()
+    start_pos = min_indent_indices[0]
+    for index in min_indent_indices:
+        if start_pos != index:
+            slices.append(slice(start_pos, index + 1))
+            start_pos = index
+    
+    # Here, we check to see whether or not the last indent in our list
+    # of comments is a first-level comment or not. If it is a first-level
+    # comment, that indent would have a value equal to the minimum indent. 
+    # However, if the last indent is _not_ a first-level comment, 
+    # we need to add another slice that will encompass the comments from the
+    # last first-level comment on the page to the last comment on the page. 
+    # We add dummy values at the ends of the ids, indents, and items lists in
+    # order to signal an end to recursion when we work with these data structures
+    # later on. This is why the slice extends to a stopping point of 
+    # indents[-1] + 2; as the stopping point is non-inclusive, this will 
+    # encompass the range [min_indent_indices[-1] : indents[-1] + 1], where
+    # indents[-1] + 1 corresponds to the "dummy" values being inserted.
+    if indents[-1] != min_indent:
+        slices.append(slice(min_indent_indices[-1], indents[-1] + 2))
+        ids.append(DUMMY_ID)
+        indents.append(min_indent)
+        items.append(DUMMY_ITEM)
 
-    # zip up iterables and create an OrderedDict from them
-    zipped_data = zip(ids, indents, items)
-    comments = OrderedDict()
-    for comment_id, indent_val, item in zipped_data:
-        comments[comment_id] = {'indent': indent_val, 'item':item }
-    return comments
+    return ids, indents, items, slices
 
-def extract_comment_tree(item_id: int, comment_tree_dict: OrderedDict) -> Tree:
+def extract_comment_tree(item_id: int, comment_tree_data: Tuple[List[int], List[int], List[Item], List[slice]]) -> Tree:
     """Extracts the comment tree for a given item."""
+    ids, indents, items, slices = comment_tree_data
     tree = Tree(node_id=item_id)
+
+    # what we do here is partition the big comment tree into smaller slices whose indices encompass
+    # adjacent first level children
+    for sl in slices:
+        # partial data based on slices
+        prtl_comment_tree_data = ids[sl], indents[sl], items[sl]
+
+        child_id = ids[sl.start]
+        child_tree = extract_partial_tree(prtl_comment_tree_data)
+        tree.add_child(child_id, child_tree)
+
+    return tree
+
+def extract_partial_tree(comment_tree_data: Tuple[List, List, List]) -> Tree:
     # TODO: implement recursive tree creation logic here
     # one important condition will be the current indentation level
-    return tree
+
+    return Tree(DUMMY_ID)
 
 def extract_post_item_main(t: bs4.Tag) -> Dict:
     """Extract the information from the main/header content of a post."""              
