@@ -1,8 +1,9 @@
 import collections
-from typing import Dict
+from typing import Dict, Tuple
 
 from common import get_html, HN_NEWS_URL
-from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info
+from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, extract_comment_tree
+from tree import Tree
 
 import bs4
 
@@ -11,31 +12,47 @@ DEFAULT_PAGE_NUM = 1
 class Page(object):
     """Represents a page on Hacker News."""
     pg_number = None
-    items = Dict[int, Item]
 
-    def __init__(self, pg_number, items: Dict[int, Item] = None):
+    def __init__(self, pg_number):
         self.pg_number = pg_number
-        self.items = items
-    
-    def __str__(self):
-        return str(self.items)
 
 class NewsPage(Page):
     """Represents one of the news pages on Hacker News."""
-    # maps item IDs to rank
-    ranks = None
+    # ranks dict maps item IDs to rank
+    ranks: Dict[int, int] = None
+    items: Dict[int, Item] = None
     def __init__(self, pg_number, ranks: Dict[int, int] = None,
         items: Dict[int, Item] = None):
-        super().__init__(pg_number, items)
+        super().__init__(pg_number)
         self.ranks = ranks
+        self.items = items
 
 class CommentPage(Page):
     """Represents a page containing a comment and any subcomments."""
-    pass
+    item: Item = None
+    comments: Tree = None
+    # comment pages have a dict member called items, but this dict
+    # will only ever have one key that corresponds to the main item
+    # on the comment page itself
+    def __init__(self, pg_number, item: Item = None,
+        comments: Tree = None):
+        super().__init__(pg_number)
+        self.item = item
+        self.comments = comments
+
 
 class PostPage(Page):
     """Represents a page containing the frontmatter of a post on HN, as well as any associated comments."""
-    pass
+    item: Item = None
+    comments: Tree = None
+    # post pages have a dict member called items, but this dict
+    # will only ever have one key that corresponds to the main item
+    # on the post page itself
+    def __init__(self, pg_number, item: Item = None,
+        comments: Tree = None):
+        super().__init__(pg_number)
+        self.item = item
+        self.comments = comments
 
 # The main processing function: this function takes the
 # HTML representing any given page on HN and uses indicators
@@ -52,7 +69,7 @@ def process_page(html: str) -> Page:
     is_news_page = True if itemlist_table is not None else False
     if is_news_page:
         # get posts with ranks
-        ranks, items = extract_news_items(itemlist_table)
+        ranks, items = extract_news_page(itemlist_table)
         # construct News object
         page = NewsPage(pg_num, ranks, items)
 
@@ -68,15 +85,15 @@ def process_page(html: str) -> Page:
         # construct Comment Page object
         comment_tr = soup.find('tr', attrs={'class' : 'athing'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        items = extract_comment_items(comment_tr, comment_tree_table)
-        page = CommentPage(pg_num, items)
+        item, comment_tree = extract_comment_page(comment_tr, comment_tree_table)
+        page = CommentPage(pg_num, item=item, comments=comment_tree)
     else:
         # construct Post Page object
         post_tr_main = soup.find('tr', attrs={'class' : 'athing'})
         post_td_subtext = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        items = extract_post_items(post_tr_main, post_td_subtext, comment_tree_table)
-        page = PostPage(pg_num, items)
+        item, comment_tree = extract_post_page(post_tr_main, post_td_subtext, comment_tree_table)
+        page = PostPage(pg_num, item=item, comments=comment_tree)
     
     return page
 
@@ -87,6 +104,7 @@ def process_page(html: str) -> Page:
 # located in items.py
 def extract_page_number(s: bs4.BeautifulSoup):
     """Return the page number for a given page."""
+    # TODO: add check mentioned in todos.md here
     more_a = s.find('a', attrs={'class': 'morelink'})
     if more_a is None:
         return DEFAULT_PAGE_NUM
@@ -97,42 +115,39 @@ def extract_page_number(s: bs4.BeautifulSoup):
         next_page = int(more_a['href'].split('p=')[1])
         return next_page - 1
 
-def extract_comment_items(main: bs4.Tag, tree: bs4.Tag) -> Dict:
+def extract_comment_page(main: bs4.Tag, comment_tree: bs4.Tag) -> Tuple[Item, Tree]:
     """Process HTML for a comment page."""
-    items = collections.OrderedDict()
 
     # extract main comment info
     item_id = int(main['id'])
     content = extract_comment_info(main)
-    items[item_id] = content
+    item = Item(item_id, content=content)
 
     # extract comment tree info
-    # comment_tree_info = extract_comment_tree_info(tree)
-    # items.update(comment_tree_info)
+    comment_tree = extract_comment_tree(item_id, comment_tree)
+    item.content.update({'tree': comment_tree})
 
-    return items
+    return item, comment_tree 
 
-def extract_post_items(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Dict:
+def extract_post_page(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Tuple[Item, Tree]:
     """Process HTML for a post page."""
-    items = collections.OrderedDict()
     
     # extract main post info
     item_id = int(main['id'])
     content = extract_post_item_main(main)
-    items[item_id] = Item(item_id, content=content)
+    item = Item(item_id, content=content)
 
     # extract subtext info
-    item_id, subtext_info = extract_post_item_subtext(subtext)
-    i = items[item_id]
-    i.content.update(subtext_info)
+    _, subtext_info = extract_post_item_subtext(subtext)
+    item.content.update(subtext_info)
 
     # extract comment tree info
-    # comment_tree_info = extract_comment_tree_info(tree)
-    # items.update(comment_tree_info)
+    comment_tree = extract_comment_tree(item_id, tree)
+    item.content.update({'tree': comment_tree})
 
-    return items
+    return item, comment_tree
 
-def extract_news_items(t: bs4.Tag) -> Dict:
+def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
     """Process HTML for a news page."""
     items = collections.OrderedDict()
     ranks = dict()
