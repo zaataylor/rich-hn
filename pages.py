@@ -2,7 +2,7 @@ import collections
 from typing import Dict, Tuple
 
 from common import get_html, HN_NEWS_URL
-from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, extract_comment_tree
+from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, extract_comment_tree, make_comment_tree_dict
 from tree import Tree
 
 import bs4
@@ -89,10 +89,10 @@ def extract_page(html: str) -> Page:
         page = CommentPage(pg_num, item=item, comments=comment_tree)
     else:
         # construct Post Page object
-        post_tr_main = soup.find('tr', attrs={'class' : 'athing'})
-        post_td_subtext = soup.find('td', attrs={'class' : 'subtext'})
+        post_tr = soup.find('tr', attrs={'class' : 'athing'})
+        post_td = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        item, comment_tree = extract_post_page(post_tr_main, post_td_subtext, comment_tree_table)
+        item, comment_tree = extract_post_page(post_tr, post_td, comment_tree_table)
         page = PostPage(pg_num, item=item, comments=comment_tree)
     
     return page
@@ -115,35 +115,37 @@ def extract_page_number(s: bs4.BeautifulSoup):
         next_page = int(more_a['href'].split('p=')[1])
         return next_page - 1
 
-def extract_comment_page(main: bs4.Tag, comment_tree: bs4.Tag) -> Tuple[Item, Tree]:
+def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Tree]:
     """Process HTML for a comment page."""
 
     # extract main comment info
-    item_id = int(main['id'])
-    content = extract_comment_info(main)
+    item_id = int(comment_tr['id'])
+    content = extract_comment_info(comment_tr)
     item = Item(item_id, content=content)
 
     # extract comment tree info
-    comment_tree = extract_comment_tree(item_id, comment_tree)
-    item.content.update({'tree': comment_tree})
+    comment_tree_dict = make_comment_tree_dict(comment_tree_table)
+    comment_tree = extract_comment_tree(item_id, comment_tree_dict)
+    item.content.update({'kids': comment_tree})
 
     return item, comment_tree 
 
-def extract_post_page(main: bs4.Tag, subtext: bs4.Tag, tree: bs4.Tag) -> Tuple[Item, Tree]:
+def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Tree]:
     """Process HTML for a post page."""
     
     # extract main post info
-    item_id = int(main['id'])
-    content = extract_post_item_main(main)
+    item_id = int(post_tr['id'])
+    content = extract_post_item_main(post_tr)
     item = Item(item_id, content=content)
 
     # extract subtext info
-    _, subtext_info = extract_post_item_subtext(subtext)
+    _, subtext_info = extract_post_item_subtext(post_td)
     item.content.update(subtext_info)
 
     # extract comment tree info
-    comment_tree = extract_comment_tree(item_id, tree)
-    item.content.update({'tree': comment_tree})
+    comment_tree_dict = make_comment_tree_dict(comment_tree_table)
+    comment_tree = extract_comment_tree(item_id, comment_tree_dict)
+    item.content.update({'kids': comment_tree})
 
     return item, comment_tree
 
