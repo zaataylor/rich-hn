@@ -22,10 +22,13 @@ class Tree(object):
         for child_item in self.children.values():
             res += '\n' + '\t' * indent + child_item.__str__(indent=indent+1)
         if len(self.children) > 0:
-            res += '\n' + '\t' * (indent - 1) + ' }'
+            res += '\n' + '\t' * (indent - 1) + '}'
         else:
             res += '}'
         return res
+
+    def __repr__(self):
+        return '{' + self.__str__().replace('}', '}, ') + '}'
 
     def get_num_direct_children(self):
         if self.children is None:
