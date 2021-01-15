@@ -30,6 +30,9 @@ class Tree(object):
     def __repr__(self):
         return '{' + self.__str__().replace('}', '}, ') + '}'
 
+    def get_tree_dict(self):
+        return dict(eval(self.__repr__()))
+    
     def get_num_direct_children(self):
         if self.children is None:
             return 0
