@@ -1,7 +1,6 @@
 from typing import Dict, Tuple, List
 import re
 import html
-from collections import OrderedDict
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
 from tree import Tree
@@ -20,6 +19,56 @@ class Item(object):
 
     def __str__(self):
         return str(self.item_id) + ' ' + str(self.content)
+
+    def get_text(self):
+        """Get text content of this Item or return None if there is no content."""
+        if self.content is not None:
+            return self.content.get('text', None)
+
+    def get_kids(self):
+        """Get child comment Tree of this Item or return None if there are None."""
+        if self.content is not None:
+            return self.content.get('kids', None)
+
+    def get_score(self):
+        """Get score of this Item or return None if there is no score."""
+        if self.content is not None:
+            return self.content.get('score', None)
+
+    def get_user(self):
+        """Get the user who posted this Item or return None if there is no user."""
+        if self.content is not None:
+            return self.content.get('user', None)
+
+    def get_total_comments(self):
+        """Get the total number of comments on this Item or return None if there are None."""
+        if self.content is not None:
+            return self.content.get('total_comments', None)
+
+    def get_item_type(self):
+        """Get the type of this Item."""
+        if self.content is not None:
+            return self.content.get('type')
+
+    def get_parent_id(self):
+        """Get ID of the parent of this Item, or return None if there is no parent."""
+        if self.content is not None:
+            return self.content.get('parent', None)
+
+    def get_title(self):
+        """Get the title of this Item, or return None if there is no title."""
+        if self.content is not None:
+            return self.content.get('title', None)
+
+    def get_url(self):
+        """Get the URL of this Item."""
+        if self.content is not None:
+            return self.content.get('url')
+
+    def get_sitebit(self):
+        """Get the sitebit of this Item, or return None if there is no sitebit."""
+        if self.content is not None:
+            return self.content.get('sitebit', None)
 
 ITEM_TYPE = {
     'STORY' : 'story',
@@ -290,9 +339,9 @@ def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     content['score'] = score
 
     # get the HN user, if it exists (it won't for jobs posts)
-    hnuser_a = t.find('a', attrs={'class' : 'hnuser'})
-    hnuser = hnuser_a.string if hnuser_a is not None else ''
-    content['hnuser'] = hnuser
+    user_a = t.find('a', attrs={'class' : 'hnuser'})
+    user = user_a.string if user_a is not None else ''
+    content['user'] = user
 
     # use the age of the post to get the ID of it for matching with main title
     age_span = t.find('span', attrs={'class' : 'age'})
