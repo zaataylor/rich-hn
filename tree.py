@@ -54,7 +54,7 @@ class Tree(object):
     def add_child_data(self, child_id, data):
         self.children[child_id] = Tree(node_id=child_id, data=data)
 
-    def add_child_tree(self, child_id, tr: Tree):
+    def add_child_tree(self, child_id, tr):
         self.children[child_id] = tr
 
     def remove_child(self, child_id):
