@@ -13,18 +13,20 @@ DEFAULT_PAGE_NUM = 1
 class Page(object):
     """Represents a page on Hacker News."""
     pg_number = None
+    has_next = None
 
-    def __init__(self, pg_number):
+    def __init__(self, pg_number, has_next):
         self.pg_number = pg_number
+        self.has_next = has_next
 
 class NewsPage(Page):
     """Represents one of the news pages on Hacker News."""
     # ranks dict maps item IDs to rank
     ranks: Dict[int, int] = None
     items: Dict[int, Item] = None
-    def __init__(self, pg_number, ranks: Dict[int, int] = None,
+    def __init__(self, pg_number, has_next, ranks: Dict[int, int] = None,
         items: Dict[int, Item] = None):
-        super().__init__(pg_number)
+        super().__init__(pg_number, has_next)
         self.ranks = ranks
         self.items = items
 
@@ -35,9 +37,9 @@ class CommentPage(Page):
     # comment pages have a dict member called items, but this dict
     # will only ever have one key that corresponds to the main item
     # on the comment page itself
-    def __init__(self, pg_number, item: Item = None,
+    def __init__(self, pg_number, has_next, item: Item = None,
         comments: Tree = None):
-        super().__init__(pg_number)
+        super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
 
@@ -49,9 +51,9 @@ class PostPage(Page):
     # post pages have a dict member called items, but this dict
     # will only ever have one key that corresponds to the main item
     # on the post page itself
-    def __init__(self, pg_number, item: Item = None,
+    def __init__(self, pg_number, has_next, item: Item = None,
         comments: Tree = None):
-        super().__init__(pg_number)
+        super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
 
@@ -64,6 +66,7 @@ def extract_page(html: str) -> Page:
 
     soup = bs4.BeautifulSoup(html, 'html.parser')
     pg_num = extract_page_number(soup)
+    has_next = has_next_page(soup)
 
     # search for <table> with class='itemlist', characteristic of a News Page
     itemlist_table = soup.find('table', attrs={'class': 'itemlist'})
@@ -72,7 +75,7 @@ def extract_page(html: str) -> Page:
         # get posts with ranks
         ranks, items = extract_news_page(itemlist_table)
         # construct News object
-        page = NewsPage(pg_num, ranks, items)
+        page = NewsPage(pg_num, has_next, ranks, items)
 
     # Search for <span> elements with class='storyon', and check whether all
     # of them are empty. This distinguishes Comment Pages from Post Pages.
@@ -87,14 +90,14 @@ def extract_page(html: str) -> Page:
         comment_tr = soup.find('tr', attrs={'class' : 'athing'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
         item, comment_tree = extract_comment_page(comment_tr, comment_tree_table)
-        page = CommentPage(pg_num, item=item, comments=comment_tree)
+        page = CommentPage(pg_num, has_next, item=item, comments=comment_tree)
     else:
         # construct Post Page object
         post_tr = soup.find('tr', attrs={'class' : 'athing'})
         post_td = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
         item, comment_tree = extract_post_page(post_tr, post_td, comment_tree_table)
-        page = PostPage(pg_num, item=item, comments=comment_tree)
+        page = PostPage(pg_num, has_next, item=item, comments=comment_tree)
     
     return page
 
@@ -105,16 +108,23 @@ def extract_page(html: str) -> Page:
 # located in items.py
 def extract_page_number(s: bs4.BeautifulSoup):
     """Return the page number for a given page."""
-    # TODO: add check mentioned in todos.md here
+    pagetop_span = s.find('span', attrs={'class': 'pagetop'})
+    pagenum_font = pagetop_span.find('font')
+    if pagenum_font is not None:
+        page_num = int(pagenum_font.string.split('page')[1])
+        return page_num
+    else:
+        return DEFAULT_PAGE_NUM
+
+def has_next_page(s: bs4.BeautifulSoup):
+    """Return boolean indicating if there is a next page or not."""
     more_a = s.find('a', attrs={'class': 'morelink'})
     if more_a is None:
-        return DEFAULT_PAGE_NUM
+        return False
     else:
-        # If there's a "More" link at the bottom of the page, the
-        # current page number is 1 less than the page number listed
-        # in the "More" link
-        next_page = int(more_a['href'].split('p=')[1])
-        return next_page - 1
+        # If there's a "More" link at the bottom of the page, then
+        # there's a next page
+        return True
 
 def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Tree]:
     """Process HTML for a comment page."""
@@ -182,10 +192,4 @@ def extract_rank(t: bs4.Tag) -> int:
     rank = int(rank_span.string.split('.')[0]) if rank_span.string else ''
     return rank
 
-# Getting function: This function gets the raw HTML content
-# of a given news page on HN, returning it for subsequent use by
-# the extraction functions above.
-def get_news_page_by_num(page_num: int) -> str:
-    """Return the HTML content of a given news page."""
-    page_url = HN_NEWS_URL + '?p={}'.format(page_num)
-    return get_html(page_url)
+
