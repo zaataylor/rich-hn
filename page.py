@@ -1,4 +1,4 @@
-import collections
+from collections import OrderedDict
 from typing import Dict, Tuple
 
 from common import get_html, HN_NEWS_URL
@@ -162,7 +162,7 @@ def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs
 
 def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
     """Process HTML for a news page."""
-    items = collections.OrderedDict()
+    items = OrderedDict()
     ranks = dict()
 
     for child in t.children:
