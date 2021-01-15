@@ -124,9 +124,9 @@ def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tu
     content = extract_comment_info(comment_tr)
     item = Item(main_item_id, content=content)
 
-    # extract comment tree info
-    comment_tree_data = make_comment_tree_ds(comment_tree_table)
-    comment_tree = extract_comment_tree(main_item_id, comment_tree_data)
+    # extract comment tree
+    comment_tree_ds = make_comment_tree_ds(comment_tree_table)
+    comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
     item.content.update({'kids': comment_tree})
 
     return item, comment_tree 
@@ -143,9 +143,9 @@ def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs
     _, subtext_info = extract_post_item_subtext(post_td)
     item.content.update(subtext_info)
 
-    # extract comment tree info
-    comment_tree_data = make_comment_tree_ds(comment_tree_table)
-    comment_tree = extract_comment_tree(main_item_id, comment_tree_data)
+    # extract comment tree
+    comment_tree_ds = make_comment_tree_ds(comment_tree_table)
+    comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
     item.content.update({'kids': comment_tree})
 
     return item, comment_tree
