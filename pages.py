@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 
 from common import get_html, HN_NEWS_URL
 from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, \
-    extract_comment_tree, make_comment_tree_ds
+    extract_comment_tree, extract_comment_tree_ds
 from tree import Tree
 
 import bs4
@@ -125,7 +125,7 @@ def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tu
     item = Item(main_item_id, content=content)
 
     # extract comment tree
-    comment_tree_ds = make_comment_tree_ds(comment_tree_table)
+    comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
     comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
     item.content.update({'kids': comment_tree})
 
@@ -144,7 +144,7 @@ def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs
     item.content.update(subtext_info)
 
     # extract comment tree
-    comment_tree_ds = make_comment_tree_ds(comment_tree_table)
+    comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
     comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
     item.content.update({'kids': comment_tree})
 

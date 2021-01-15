@@ -105,9 +105,9 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
 
     return fins
 
-def make_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], List[int],
+def extract_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], List[int],
     List[Item], List[slice]]:
-    """Generates data structures representing a comment tree."""
+    """Generate data structures representing a comment tree."""
     raw_comments = comment_tree_table.find_all('tr', attrs={'class' : 'athing comtr'})
     indents = list()
     ids = list()
