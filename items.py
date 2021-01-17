@@ -239,8 +239,44 @@ def extract_comment_tree(item_id: int, comment_tree_ds: Tuple[List[int], List[in
         # add this subtree to the larger tree, which has a root at the
         # main item for a Post Page or Comment Page
         tree.add_child(p_id, p_tree)
+    # TODO: figure out what to do with this
+    comment_lineage = extract_lineage(item_id, (ids, indents, sorted_indents, items))
 
     return tree
+
+def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
+    List[int]]) -> Dict[int, List]:
+    """Extract comment lineage."""
+    ids, indents, sorted_indents, items = partial_tree_ds
+    comment_lineage = {}
+    lineage = []
+    for index, item_id in enumerate(ids):
+        # if we're not at the last comment in the list
+        # TODO: determine if it makes more sense to append just IDs or
+        # (ID, Item) tuples
+        if index + 1 <= len(ids) - 1:
+            # compare the indent of the current comment with the indent
+            # of the next one
+            indent_diff = sorted_indents.index(indents[index + 1]) - sorted_indents.index(indents[index])
+            if indent_diff > 0:
+                lineage.append(item_id)
+                comment_lineage[item_id] = lineage.copy()
+            elif indent_diff == 0:
+                lineage.append(item_id)
+                comment_lineage[item_id] = lineage.copy()
+                lineage.pop()
+            else:
+                lineage.append(item_id)
+                comment_lineage[item_id] = lineage.copy()
+                lineage.pop()
+                while indent_diff < 0:
+                    lineage.pop()
+                    indent_diff += 1
+        else:
+            lineage.append(item_id)
+            comment_lineage[item_id] = lineage.copy()
+    
+    return comment_lineage
 
 def extract_partial_tree(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
     List[int], List[Item]]) -> Tree:
@@ -296,13 +332,13 @@ def extract_partial_tree(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
 
     return tree
 
-def extract_post_item_main(t: bs4.Tag) -> Dict:
+def extract_post_item_main(post_tr: bs4.Tag) -> Dict:
     """Extract the information from the main/header content of a post."""              
     content = dict()
-    item_id = int(t['id'])
+    item_id = int(post_tr['id'])
   
     # get post title, associated links, if present
-    story_a = t.find('a', attrs={'class': 'storylink'})
+    story_a = post_tr.find('a', attrs={'class': 'storylink'})
     if story_a is not None:
         url = story_a['href']
         title = story_a.string
@@ -310,13 +346,13 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
         content['title'] = title
 
     # get sitebit description beside main site title, if it exists
-    sitebit_space = t.find('span', attrs={'class': 'sitestr'})
+    sitebit_space = post_tr.find('span', attrs={'class': 'sitestr'})
     site_bit = sitebit_space.string if sitebit_space is not None else ''
     content['sitebit'] = site_bit
     sitebit_present = bool(site_bit)
 
     # see if votelinks are present, indicating if post is a jobs post or not
-    votelinks = t.find('td', attrs={'class': 'votelinks'})
+    votelinks = post_tr.find('td', attrs={'class': 'votelinks'})
     votelink_present = True if votelinks is not None else False
 
     content['type'] = extract_item_type(item_id, title, votelink_present,
