@@ -3,7 +3,6 @@ import re
 import html
 
 from common import get_html, HN_ITEMS_URL, HN_API_ITEMS_URL
-from tree import Tree
 
 import bs4
 import requests
@@ -30,7 +29,7 @@ class Item(object):
         return self.item_id
 
     def get_kids(self):
-        """Get child comment Tree of this Item or return None if there are None."""
+        """Get child comment tree of this Item or return None if there are None."""
         if self.content is not None:
             return self.content.get('kids', None)
 
