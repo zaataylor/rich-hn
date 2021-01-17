@@ -176,73 +176,20 @@ def extract_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], Lis
         i = Item(comment_id, content=content)
         items.append(i)
 
-    # get minimum indent
-    min_indent = min(indents)
-    # get indices of minimum indent over all the comments. These correspond to 
-    # the first-level children of the main post/comment on a page, and will allow
-    # us to optimize slices we make over a particular range of comments.
-    min_indent_indices = list()
-    for index, indent in enumerate(indents):
-        if indent == min_indent:
-            min_indent_indices.append(index)
-    
-    # A list of slice objects needed for later. The slices all start and stop
-    # (inclusively) at an indices that correspond to first-level children.
-    slices = list()
-    start_pos = min_indent_indices[0]
-    for index in min_indent_indices:
-        if start_pos != index:
-            slices.append(slice(start_pos, index + 1))
-            start_pos = index
-    
-    # Here, we check to see whether or not the last indent in our list
-    # of comments is a first-level comment or not. If it is a first-level
-    # comment, that indent will have a value equal to the minimum indent.
-    # However, if the last indent is _not_ a first-level comment, 
-    # we need to add another slice that will encompass the comments from the
-    # last first-level comment on the page to the last comment on the page. To do
-    # so, we add dummy values at the ends of the ids, indents, and items lists in
-    # order to signal an end to recursion when we work with these data structures
-    # later on. This is why the slice extends to a stopping point of 
-    # len(indents) + 1; as the stopping point is non-inclusive, this will 
-    # encompass the range [min_indent_indices[-1] : len(indents)], where
-    # the index with value equal to len(indents) corresponds to the index of the 
-    # "dummy" values being inserted.
-    if indents[-1] != min_indent:
-        slices.append(slice(min_indent_indices[-1], len(indents) + 1))
-        ids.append(DUMMY_ID)
-        indents.append(min_indent)
-        items.append(DUMMY_ITEM)
-
     # a sorted list of unique indents, used to help us determine
     # other indents relative to any item's given indent.
     sorted_indents = sorted(list(set(indents)))
 
-    return ids, indents, sorted_indents, items, slices
+    return ids, indents, sorted_indents, items
 
 def extract_comment_tree(item_id: int, comment_tree_ds: Tuple[List[int], List[int],
-    List[int], List[Item], List[slice]]) -> Tree:
+    List[int], List[Item]]) -> Dict:
     """Extracts the comment tree for a given item."""
-    ids, indents, sorted_indents, items, slices = comment_tree_ds
-    tree = Tree(node_id=item_id)
-
-    # Here, we partition the big comment tree into smaller slices whose
-    # indices encompass adjacent first-level children.
-    for sl in slices:
-        # partial data based on slices
-        prtl_comment_tree_ds = ids[sl], indents[sl], sorted_indents, items[sl]
-
-        # the ID of the first item in this slice of ids is a first-level child
-        p_id = ids[sl.start]
-        # create the partial tree rooted at one of the first-level children
-        p_tree = extract_partial_tree(p_id, prtl_comment_tree_ds)
-        # add this subtree to the larger tree, which has a root at the
-        # main item for a Post Page or Comment Page
-        tree.add_child(p_id, p_tree)
-    # TODO: figure out what to do with this
+    ids, indents, sorted_indents, items = comment_tree_ds
+   
     comment_lineage = extract_lineage(item_id, (ids, indents, sorted_indents, items))
 
-    return tree
+    return comment_lineage
 
 def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
     List[int]]) -> Dict[int, List]:
@@ -252,85 +199,30 @@ def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
     lineage = []
     for index, item_id in enumerate(ids):
         # if we're not at the last comment in the list
-        # TODO: determine if it makes more sense to append just IDs or
-        # (ID, Item) tuples
         if index + 1 <= len(ids) - 1:
             # compare the indent of the current comment with the indent
             # of the next one
-            indent_diff = sorted_indents.index(indents[index + 1]) - sorted_indents.index(indents[index])
+            indent_diff = \
+                sorted_indents.index(indents[index + 1]) - sorted_indents.index(indents[index])
             if indent_diff > 0:
-                lineage.append(item_id)
+                lineage.append((item_id, items[index]))
                 comment_lineage[item_id] = lineage.copy()
             elif indent_diff == 0:
-                lineage.append(item_id)
+                lineage.append((item_id, items[index]))
                 comment_lineage[item_id] = lineage.copy()
                 lineage.pop()
             else:
-                lineage.append(item_id)
+                lineage.append((item_id, items[index]))
                 comment_lineage[item_id] = lineage.copy()
                 lineage.pop()
                 while indent_diff < 0:
                     lineage.pop()
                     indent_diff += 1
         else:
-            lineage.append(item_id)
+            lineage.append((item_id, items[index]))
             comment_lineage[item_id] = lineage.copy()
     
     return comment_lineage
-
-def extract_partial_tree(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
-    List[int], List[Item]]) -> Tree:
-    """Extract a partial tree rooted at a first-level child."""
-    ids, indents, sorted_indents, items = partial_tree_ds
-
-    # get parent information using index of parent ID
-    parent_index = ids.index(p_id)
-    parent_id = ids[parent_index]
-    parent_indent = indents[parent_index]
-    parent_item = items[parent_index]
-
-    # form parent tree
-    tree = Tree(parent_id, data=parent_item)
-
-    for idx, item_id_and_indent in enumerate(zip(ids, indents)):
-        item_id, indent = item_id_and_indent
-        # ignore ourselves and items before us
-        if idx <= parent_index:
-            continue
-        else:
-            idx_in_sorted_indents = sorted_indents.index(parent_indent)
-
-            # Base Case 0: we're at the deepest possible indentation level for comments
-            # on this page, so there's no way we'll see anymore children. 
-            # We should stop here.
-            if idx_in_sorted_indents == len(sorted_indents) - 1:
-                break
-            elif indent <= parent_indent:
-                # Base Case 1: If indent is less than parent_indent, we are iterating over an
-                # item that is at least at the indentation level of our direct parent 
-                # (potentially more), meaning we don't have any of our own children left
-                # to process and should stop where we are.
-                # 
-                # Base Case 2: If indent == parent_indent, we've reached an item at the same
-                # level of indentation as we are, meaning we've already processed all of the
-                # items that could've been our children, so we're done and should stop where
-                # we are.
-                break
-            elif indent == sorted_indents[idx_in_sorted_indents + 1]:
-                # Case: we've encountered an item with an indent that is exactly one
-                # level greater than our own indentation level, meaning that this 
-                # item is our direct child. So, we should add this child to our list
-                # of children, then recurse to add that child's children. Note that we
-                # can't break after adding this child, as it's possible we have more
-                # direct children aside from the one we just found.
-                child_tree = extract_partial_tree(item_id, partial_tree_ds)
-                tree.add_child(item_id, child_tree)
-            else:
-                # Case: we've encountered one of our non-direct children, and should ignore
-                # them since they'll be taken care of by one of our direct children.
-                continue
-
-    return tree
 
 def extract_post_item_main(post_tr: bs4.Tag) -> Dict:
     """Extract the information from the main/header content of a post."""              
