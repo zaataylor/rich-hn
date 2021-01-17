@@ -155,7 +155,7 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     return fins
 
 def extract_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], List[int],
-    List[Item], List[slice]]:
+    List[int], List[Item]]:
     """Generate data structures representing a comment tree."""
     raw_comments = comment_tree_table.find_all('tr', attrs={'class' : 'athing comtr'})
     indents = list()
@@ -192,7 +192,7 @@ def extract_comment_tree(item_id: int, comment_tree_ds: Tuple[List[int], List[in
     return comment_lineage
 
 def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
-    List[int]]) -> Dict[int, List]:
+    List[int], List[Item]]) -> Dict[int, List]:
     """Extract comment lineage."""
     ids, indents, sorted_indents, items = partial_tree_ds
     comment_lineage = {}
