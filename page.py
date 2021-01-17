@@ -52,7 +52,7 @@ class PostPage(Page):
     # will only ever have one key that corresponds to the main item
     # on the post page itself
     def __init__(self, pg_number, has_next, item: Item = None,
-        comments: Tree = None):
+        comments: dict = None):
         super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
@@ -141,7 +141,7 @@ def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tu
 
     return item, comment_tree 
 
-def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Tree]:
+def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Dict]:
     """Process HTML for a post page."""
     
     # extract main post info
@@ -152,7 +152,7 @@ def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs
     # extract subtext info
     _, subtext_info = extract_post_item_subtext(post_td)
     item.content.update(subtext_info)
-
+    
     # extract comment tree
     comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
     comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
