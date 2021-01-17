@@ -25,6 +25,10 @@ class Item(object):
         if self.content is not None:
             return self.content.get('text', None)
 
+    def get_id(self):
+        """Get ID of this Item."""
+        return self.item_id
+
     def get_kids(self):
         """Get child comment Tree of this Item or return None if there are None."""
         if self.content is not None:
@@ -77,9 +81,6 @@ ITEM_TYPE = {
     'POLL' : 'poll',
     'POLLOPT' : 'pollopt'
 }
-
-DUMMY_ITEM = None
-DUMMY_ID = -1
 
 # Extraction functions: here, we extract useful information from
 # the HTML or JSON obtained from the HN site directly or the HN API.
