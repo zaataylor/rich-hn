@@ -6,12 +6,12 @@
         - [] Ask HNs
         - [] Show HNs
         - [] Jobs
-    - [] Figure out how to extract comment trees under a given post
+    - [&check;] Figure out how to extract comment trees under a given post
     - [&check;] Figure out where and how to store comment trees
         - [&check;] Store comment trees as a field "kids" with the `Item` those kids are children of
         - [&check;] `Page`s will also store a reference to the comment tree on their own
     - [] Figure out where to take advantage of caching
-    - [] Add pre-emptive check in `pages.extract_page_number` to use the `<span>` with class = `pagetop` to check if there is a page number at the top of the HN page.
+    - [] Figure out how to express notion of `ItemDB`.
 - Display
     - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
     - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
