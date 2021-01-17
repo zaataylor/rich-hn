@@ -177,7 +177,7 @@ def extract_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], Lis
         items.append(i)
 
     # a sorted list of unique indents, used to help us determine
-    # other indents relative to any item's given indent.
+    # other indents relative to any comment's given indent.
     sorted_indents = sorted(list(set(indents)))
 
     return ids, indents, sorted_indents, items
@@ -200,25 +200,49 @@ def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
     for index, item_id in enumerate(ids):
         # if we're not at the last comment in the list
         if index + 1 <= len(ids) - 1:
+            # the current comment's lineage is complete
+            lineage.append((item_id, items[index]))
+            comment_lineage[item_id] = lineage.copy()
+
             # compare the indent of the current comment with the indent
-            # of the next one
+            # of the next one to get a comparison of how indented
+            # they are relative to one another. Use the list of sorted
+            # indents for this purpose
             indent_diff = \
                 sorted_indents.index(indents[index + 1]) - sorted_indents.index(indents[index])
             if indent_diff > 0:
-                lineage.append((item_id, items[index]))
-                comment_lineage[item_id] = lineage.copy()
+                # since the next comment is more indented than the current 
+                # one, the lineage for that comment will include this 
+                # comment as well. The code is more readable with this explanation,
+                # which is why this conditional is left here.
+                pass
             elif indent_diff == 0:
-                lineage.append((item_id, items[index]))
-                comment_lineage[item_id] = lineage.copy()
+                # since the next comment has the same level of indentation as the
+                # current one, their lineages are almost the same, with the only 
+                # difference being those comments themselves. So, after forming the 
+                # proper lineage for the current comment (done above), remove it 
+                # from the lineage so the next comment can add itself to the lineage.
                 lineage.pop()
             else:
-                lineage.append((item_id, items[index]))
-                comment_lineage[item_id] = lineage.copy()
+                # as the next comment is less indented than the current one, the 
+                # lineage for that comment will not include one or more of the 
+                # members of the current comment's lineage. We should remove 
+                # members from the lineage until the indent difference is zero,
+                # meaning that we've found a common ancestor for the two commments.
+                # It's possible we won't find a common ancestor, in which case, the
+                # lineage will be empty, implying that the next comment is a first-level
+                # comment
                 lineage.pop()
                 while indent_diff < 0:
                     lineage.pop()
                     indent_diff += 1
         else:
+            # the last comment on the page, regardless of indentation level,
+            # only needs to add itself to the existing lineage in whatever
+            # form that might take. This is because the second-to-last comment
+            # has already examined the indentation level of the last comment
+            # with respect to itself, and appropriately adjusted the lineage
+            # to be accurate.
             lineage.append((item_id, items[index]))
             comment_lineage[item_id] = lineage.copy()
     
