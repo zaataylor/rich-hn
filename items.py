@@ -296,13 +296,13 @@ def extract_partial_tree(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
 
     return tree
 
-def extract_post_item_main(t: bs4.Tag) -> Dict:
+def extract_post_item_main(post_tr: bs4.Tag) -> Dict:
     """Extract the information from the main/header content of a post."""              
     content = dict()
-    item_id = int(t['id'])
+    item_id = int(post_tr['id'])
   
     # get post title, associated links, if present
-    story_a = t.find('a', attrs={'class': 'storylink'})
+    story_a = post_tr.find('a', attrs={'class': 'storylink'})
     if story_a is not None:
         url = story_a['href']
         title = story_a.string
@@ -310,13 +310,13 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
         content['title'] = title
 
     # get sitebit description beside main site title, if it exists
-    sitebit_space = t.find('span', attrs={'class': 'sitestr'})
+    sitebit_space = post_tr.find('span', attrs={'class': 'sitestr'})
     site_bit = sitebit_space.string if sitebit_space is not None else ''
     content['sitebit'] = site_bit
     sitebit_present = bool(site_bit)
 
     # see if votelinks are present, indicating if post is a jobs post or not
-    votelinks = t.find('td', attrs={'class': 'votelinks'})
+    votelinks = post_tr.find('td', attrs={'class': 'votelinks'})
     votelink_present = True if votelinks is not None else False
 
     content['type'] = extract_item_type(item_id, title, votelink_present,
@@ -324,12 +324,12 @@ def extract_post_item_main(t: bs4.Tag) -> Dict:
 
     return content
 
-def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
+def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
     """Extract information from the subtext of a post."""
     content = dict()
 
     # get the score/points, if it exists
-    score_span = t.find('span', attrs={'class' : 'score'})
+    score_span = post_td.find('span', attrs={'class' : 'score'})
     score = ''
     if score_span is not None:
         score_string = score_span.string
@@ -339,19 +339,19 @@ def extract_post_item_subtext(t: bs4.Tag) -> Tuple[int, Dict]:
     content['score'] = score
 
     # get the HN user, if it exists (it won't for jobs posts)
-    user_a = t.find('a', attrs={'class' : 'hnuser'})
+    user_a = post_td.find('a', attrs={'class' : 'hnuser'})
     user = user_a.string if user_a is not None else ''
     content['user'] = user
 
     # use the age of the post to get the ID of it for matching with main title
-    age_span = t.find('span', attrs={'class' : 'age'})
+    age_span = post_td.find('span', attrs={'class' : 'age'})
     a_tag = age_span.find('a')
     # example: href="item?id=3785593"
     item_id = int(a_tag['href'].split('id=')[1])
 
     # get the number of comments
     item_id_string = 'item?id={}'.format(item_id)
-    comment_a = t.find_all('a', attrs={'href' : item_id_string})
+    comment_a = post_td.find_all('a', attrs={'href' : item_id_string})
     # jobs posts don't have comments, so the tag will only have one <a>
     if len(comment_a) == 1:
         num_comments = 0
