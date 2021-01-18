@@ -28,6 +28,10 @@ class Item(object):
         """Get ID of this Item."""
         return self.item_id
 
+    def get_content(self):
+        """Get the content of this Item."""
+        return self.content
+
     def get_kids(self):
         """Get child comment tree of this Item or return None if there are None."""
         if self.content is not None:
