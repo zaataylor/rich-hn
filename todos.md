@@ -11,7 +11,11 @@
         - [&check;] Store comment trees as a field "kids" with the `Item` those kids are children of
         - [&check;] `Page`s will also store a reference to the comment tree on their own
     - [] Figure out where to take advantage of caching
-    - [] Figure out how to express notion of `ItemDB`.
+    - [] Figure out proper way to implement `ItemDB` as a Singleton
+        - [] Read about the use of the [Singleton Pattern](https://python-patterns.guide/gang-of-four/singleton/) in Python
+        - [] Implement `ItemDB` as a Singleton
+        - [] Decide on how to call the `ItemDB` singleton instance. Should it be in `page.py` or `pages.py`?
+    - [] Figure out a good way to update comment trees
 - Display
     - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
     - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
