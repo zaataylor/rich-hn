@@ -14,12 +14,11 @@ class ItemDB(object):
             self.items[i.get_id()] = i
 
     def update_item(self, i: Item):
-        # Algorithm:
-        #
-        # 1. Use the ID of the passed in Item to locate the desired Item
+        # Use the ID of the passed in Item to locate the desired Item
         # in the items dictionary
-        #
-        # 2. Loop over the content dictionary of the passed-in Item, and
+        db_item: Item = self.items[i.get_id()]
+
+        # Loop over the content dictionary of the passed-in Item, and
         # for each key-value pair, update the existing Item's content
         # dictionary with that data. For dictionary members of content
         # like 'kids', make sure you don't overwrite the dictionary, but
@@ -27,4 +26,10 @@ class ItemDB(object):
         # the other, non-dictionary fields in content should be overwritten
         # since they might correspond to quantitative things -- like number of
         # comments or number of points -- which need to be frequently updated.
-        pass
+        for key, value in i.get_content().items():
+            if value is not None:
+                if key == 'kids':
+                    db_item.content.update(value)
+                else:
+                    db_item.content[key] = value
+
