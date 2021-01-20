@@ -62,8 +62,6 @@ class PostPage(Page):
 # in the HTML to determine how to process the page.
 def extract_page(html: str) -> Page:
     """Process HTML of a page on HN and return a Page."""
-    page = None
-
     soup = bs4.BeautifulSoup(html, 'html.parser')
     pg_num = extract_page_number(soup)
     has_next = has_next_page(soup)
@@ -75,7 +73,7 @@ def extract_page(html: str) -> Page:
         # get posts with ranks
         ranks, items = extract_news_page(itemlist_table)
         # construct News object
-        page = NewsPage(pg_num, has_next, ranks, items)
+        return NewsPage(pg_num, has_next, ranks, items)
 
     # Search for <span> elements with class='storyon', and check whether all
     # of them are empty. This distinguishes Comment Pages from Post Pages.
@@ -90,16 +88,14 @@ def extract_page(html: str) -> Page:
         comment_tr = soup.find('tr', attrs={'class' : 'athing'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
         item, comment_tree = extract_comment_page(comment_tr, comment_tree_table)
-        page = CommentPage(pg_num, has_next, item=item, comments=comment_tree)
+        return CommentPage(pg_num, has_next, item=item, comments=comment_tree)
     else:
         # construct Post Page object
         post_tr = soup.find('tr', attrs={'class' : 'athing'})
         post_td = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
         item, comment_tree = extract_post_page(post_tr, post_td, comment_tree_table)
-        page = PostPage(pg_num, has_next, item=item, comments=comment_tree)
-    
-    return page
+        return PostPage(pg_num, has_next, item=item, comments=comment_tree)
 
 # Extraction functions: these functions extract Items and information
 # related to them, such as page number, ranking, etc. from the HTML
@@ -176,12 +172,14 @@ def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
             ranks[item_id] = extract_rank(child)
             items[item_id] = Item(item_id, content=content)
         else:
-            # other <tr> tags are subtexts under the post
+            print('Child in else statement is: {}'.format(child))
+            # most of the other <tr> tags are subtexts under the post
             subtext_td = child.find('td', attrs={'class' : 'subtext'})
-            item_id, subtext_info = extract_post_item_subtext(subtext_td)
-            # find the appropriate Item and update its content
-            i = items[item_id]
-            i.content.update(subtext_info)
+            if subtext_td is not None:
+                item_id, subtext_info = extract_post_item_subtext(subtext_td)
+                # find the appropriate Item and update its content
+                i = items[item_id]
+                i.content.update(subtext_info)
 
     return ranks, items
 
