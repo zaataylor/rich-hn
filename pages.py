@@ -1,7 +1,10 @@
 from typing import List
 
-from page import Page, extract_page, DEFAULT_PAGE_NUM
+from page import Page, NewsPage, CommentPage, PostPage, extract_page, DEFAULT_PAGE_NUM
 from common import get_html, HN_ITEMS_URL, HN_NEWS_URL
+from itemdb import ItemDB
+
+items_db = ItemDB(items={})
 
 class Pages(object):
     """Represents a collection of Pages on HN."""
@@ -21,7 +24,19 @@ class Pages(object):
         s += '}'
         return s
 
+    def update_db(self):
+        if self.pages is not None:
+            first_pg = self.pages[0]
+            if isinstance(first_pg, NewsPage):
+                for p in self.pages:
+                    for item in p.items.values():
+                        items_db.add_item(item)
+            else:
+                for p in self.pages:
+                    items_db.add_item(p.item)
+
 def get_post_pages_by_id(item_id: int) -> List[Page]:
+    """Get Post Pages based on an Item ID."""
     pages = []
     url = HN_ITEMS_URL + '?id={}'.format(item_id)
     pg = extract_page(get_html(url))
@@ -34,7 +49,7 @@ def get_post_pages_by_id(item_id: int) -> List[Page]:
     return pages
 
 def get_news_pages_by_num(page_nums: List[int]) -> List[Page]:
-    """Return the HTML content of a given news page."""
+    """Get News Pages indicated by a list of numbers."""
     pages = []
     for page_num in page_nums:
         url = HN_NEWS_URL + '?p={}'.format(page_num)
