@@ -183,8 +183,12 @@ def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
 
     return ranks, items
 
+def extract_ranks(itemlist_table: bs4.Tag) -> Dict[int, int]:
+    """Extracts all of the ranks for the Items on a given News Page."""
+    pass
+
 def extract_rank(t: bs4.Tag) -> int:
-    """Extract rank from an item on a news page."""
+    """Extract rank from an Item on a news page."""
     # get rank, if it exists
     rank_span = t.find('span', attrs={'class': 'rank'})
     rank = int(rank_span.string.split('.')[0]) if rank_span.string else ''
