@@ -9,19 +9,16 @@ items_db = ItemDB(items={})
 class Pages(object):
     """Represents a collection of Pages on HN."""
     pages: List[Page] = None
-    num_pages: int = None
     current_page: int = None
 
-    def __init__(self, pages: List[Page], num_pages: int, current_page: int = DEFAULT_PAGE_NUM):
+    def __init__(self, pages: List[Page], current_page: int = DEFAULT_PAGE_NUM):
         self.pages = pages
-        self.num_pages = num_pages
         self.current_page = current_page
 
     def __str__(self):
-        s = '{\n'
+        s = ''
         for p in self.pages:
-            s += '\t{}. {}\n'.format(p.pg_number, p)
-        s += '}'
+            s += 'Page Number {}. \n{}\n'.format(p.pg_number, p)
         return s
 
     def update_db(self):
@@ -38,7 +35,7 @@ class Pages(object):
 
     def get_current_page(self):
         """Get the current Page."""
-        return self.pages[self.current_page]
+        return self.pages[self.current_page - 1]
 
     def get_current_page_num(self):
         """Get the current page number."""
@@ -61,7 +58,7 @@ class Pages(object):
         else:
             return None
 
-def get_post_pages_by_id(item_id: int) -> List[Page]:
+def get_post_pages_by_id(item_id: int) -> Pages:
     """Get Post Pages based on an Item ID."""
     pages = []
     url = HN_ITEMS_URL + '?id={}'.format(item_id)
@@ -72,9 +69,9 @@ def get_post_pages_by_id(item_id: int) -> List[Page]:
         pg = extract_page(get_html(newurl))
         pages.append(pg)
 
-    return pages
+    return Pages(pages)
 
-def get_news_pages_by_num(page_nums: List[int]) -> List[Page]:
+def get_news_pages_by_num(page_nums: List[int]) -> Pages:
     """Get News Pages indicated by a list of numbers."""
     pages = []
     for page_num in page_nums:
@@ -82,4 +79,4 @@ def get_news_pages_by_num(page_nums: List[int]) -> List[Page]:
         pg = extract_page(get_html(url))
         pages.append(pg)
 
-    return pages
+    return Pages(pages)
