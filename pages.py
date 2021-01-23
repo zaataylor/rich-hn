@@ -25,6 +25,7 @@ class Pages(object):
         return s
 
     def update_db(self):
+        """Update the ItemDB with one or more Items."""
         if self.pages is not None:
             first_pg = self.pages[0]
             if isinstance(first_pg, NewsPage):
@@ -34,6 +35,31 @@ class Pages(object):
             else:
                 for p in self.pages:
                     items_db.add_item(p.item)
+
+    def get_current_page(self):
+        """Get the current Page."""
+        return self.pages[self.current_page]
+
+    def get_current_page_num(self):
+        """Get the current page number."""
+        return self.current_page
+
+    def next_page(self):
+        """Get the next Page, or None if there isn't one."""
+        cur_pg = self.get_current_page()
+        if cur_pg.has_next:
+            self.current_page += 1
+            return self.get_current_page()
+        else:
+            return None
+        
+    def prev_page(self):
+        """Get the previous Page, or None if there isn't one."""
+        if self.current_page - 1 >= 1:
+            self.current_page -= 1
+            return self.get_current_page()
+        else:
+            return None
 
 def get_post_pages_by_id(item_id: int) -> List[Page]:
     """Get Post Pages based on an Item ID."""
