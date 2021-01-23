@@ -29,6 +29,13 @@ class NewsPage(Page):
         super().__init__(pg_number, has_next)
         self.ranks = ranks
         self.items = items
+    
+    def __str__(self):
+        s = ''
+        for item_id, rank in self.ranks.items():
+            s += '{}. {}\n'.format(rank, self.items[item_id].get_title())
+        s += '\n'
+        return s
 
 class CommentPage(Page):
     """Represents a page containing a comment and any subcomments."""
@@ -43,6 +50,12 @@ class CommentPage(Page):
         self.item = item
         self.comments = comments
 
+    def __str__(self):
+        s = ''
+        s += '{}\n'.format(self.item.get_text())
+        for lineage in self.comments.values():
+            s += '\t * {}{}\n'.format(len(lineage), lineage[-1][1].get_text())
+        return s
 
 class PostPage(Page):
     """Represents a page containing the frontmatter of a post on HN, as well as any associated comments."""
@@ -56,6 +69,13 @@ class PostPage(Page):
         super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
+
+    def __str__(self):
+        s = ''
+        s += '{}\n'.format(self.item.get_text())
+        for lineage in self.comments.values():
+            s += '\t' * len(lineage) + '{}\n'.format(lineage[-1][1].get_text())
+        return s
 
 # The main extraction function: this function takes the
 # HTML representing any given page on HN and uses indicators
@@ -172,7 +192,6 @@ def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
             ranks[item_id] = extract_rank(child)
             items[item_id] = Item(item_id, content=content)
         else:
-            print('Child in else statement is: {}'.format(child))
             # most of the other <tr> tags are subtexts under the post
             subtext_td = child.find('td', attrs={'class' : 'subtext'})
             if subtext_td is not None:
