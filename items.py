@@ -147,12 +147,12 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     # followed by the string ' rel="nofollow">', followed by >= 1 valid URL characters, 
     # followed by '</a>', which indicates the end of an anchor tag
     fins = re.sub(
-        r'<a href="([a-zA-Z0-9:~/.#@!$&?+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&?+,;=()\'-]+)</a>',
+        r'<a href="([a-zA-Z0-9:~/.#@!$&?_%+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&?%_+,;=()\'-]+)</a>',
         r'[link=\1]\2 [/link]',
         fins)
     # Insert newlines where <p> tags are,
     # and empty strings where '</p>' are
-    fins = fins.replace('<p>', '\n\n')
+    # fins = fins.replace('<p>', '\n\n')
     fins = fins.replace('</p>', '')
 
     return fins
@@ -235,7 +235,6 @@ def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
                 # It's possible we won't find a common ancestor, in which case, the
                 # lineage will be empty, implying that the next comment is a first-level
                 # comment
-                lineage.pop()
                 while indent_diff < 0:
                     lineage.pop()
                     indent_diff += 1
