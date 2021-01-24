@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Dict, Tuple
+import textwrap
 
 from common import get_html, HN_NEWS_URL
 from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, \
@@ -33,8 +34,7 @@ class NewsPage(Page):
     def __str__(self):
         s = ''
         for item_id, rank in self.ranks.items():
-            s += '{}. {}\n'.format(rank, self.items[item_id].get_title())
-        s += '\n'
+            s += '{:>3}. {}\n'.format(rank, self.items[item_id].get_title())
         return s
 
 class CommentPage(Page):
@@ -52,9 +52,19 @@ class CommentPage(Page):
 
     def __str__(self):
         s = ''
-        s += '{}\n'.format(self.item.get_text())
+        s += '{}:\n'.format(self.item.get_user())
+        main_comment = prettify_string(self.item.get_text(), '')
+        main_comment = main_comment.replace('<p>', '\n\n')
+        s += main_comment + '\n\n'
         for lineage in self.comments.values():
-            s += '\t * {}{}\n'.format(len(lineage), lineage[-1][1].get_text())
+            comment = lineage[-1][1]
+            ind = '\t' * len(lineage)
+            s += '{}:'.format(prettify_string(comment.get_user(), ind))
+            s += '\n'
+            pretty_comment = prettify_string(comment.get_text(), ind)
+            pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
+            s += pretty_comment
+            s += '\n\n'
         return s
 
 class PostPage(Page):
@@ -72,10 +82,21 @@ class PostPage(Page):
 
     def __str__(self):
         s = ''
-        s += '{}\n'.format(self.item.get_text())
+        s += '{}\n'.format(self.item.get_title())
         for lineage in self.comments.values():
-            s += '\t' * len(lineage) + '{}\n'.format(lineage[-1][1].get_text())
+            comment = lineage[-1][1]
+            ind = '\t' * len(lineage)
+            s += '{}:'.format(prettify_string(comment.get_user(), ind))
+            s += '\n'
+            pretty_comment = prettify_string(comment.get_text(), ind)
+            pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
+            s += pretty_comment
+            s += '\n\n'
         return s
+
+def prettify_string(text: str, ind: str) -> str:
+    t = textwrap.fill(text, width=100, break_long_words=False, break_on_hyphens=False)
+    return textwrap.indent(t, prefix=ind)
 
 # The main extraction function: this function takes the
 # HTML representing any given page on HN and uses indicators
@@ -130,7 +151,11 @@ def extract_page_number(s: bs4.BeautifulSoup):
         page_num = int(pagenum_font.string.split('page')[1])
         return page_num
     else:
-        return DEFAULT_PAGE_NUM
+        more_a = s.find('a', attrs={'class': 'morelink'})
+        if more_a is not None:
+            return int(more_a['href'].split('p=')[1]) - 1
+        else:
+            return DEFAULT_PAGE_NUM
 
 def has_next_page(s: bs4.BeautifulSoup):
     """Return boolean indicating if there is a next page or not."""
