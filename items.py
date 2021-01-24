@@ -147,10 +147,9 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     # followed by the string ' rel="nofollow">', followed by >= 1 valid URL characters, 
     # followed by '</a>', which indicates the end of an anchor tag
     fins = re.sub(
-        r'<a href="([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&+,;=()\'-]+)</a>',
-        r'[link=\1]\2[/link]',
+        r'<a href="([a-zA-Z0-9:~/.#@!$&?+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&?+,;=()\'-]+)</a>',
+        r'[link=\1]\2 [/link]',
         fins)
-
     # Insert newlines where <p> tags are,
     # and empty strings where '</p>' are
     fins = fins.replace('<p>', '\n\n')
