@@ -95,7 +95,8 @@ class PostPage(Page):
         return s
 
 def prettify_string(text: str, ind: str) -> str:
-    t = textwrap.fill(text, width=100, break_long_words=False, break_on_hyphens=False)
+    """Prettifies a string into a string justified by ind."""
+    t = textwrap.fill(text, width=100, break_long_words=True, break_on_hyphens=False)
     return textwrap.indent(t, prefix=ind)
 
 # The main extraction function: this function takes the
