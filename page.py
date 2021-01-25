@@ -117,14 +117,12 @@ def extract_page(html: str) -> Page:
         # construct News object
         return NewsPage(pg_num, has_next, ranks, items)
 
-    # Search for <span> elements with class='storyon', and check whether all
-    # of them are empty. This distinguishes Comment Pages from Post Pages.
-    # Optimization: only check the first item with class='storyon', as
-    # this corresponds to the front matter of a post
-    storyon_span = soup.find('span', attrs={'class': 'storyon'})
-    # If the first tag in the tree with class='storyon' is empty, that indicates we're
-    # on a Post Page. Otherwise, we're on a Comment Page.
-    is_comment_page = bool(storyon_span.contents)
+    # If there is a <td> with class equal to "subtext" on the
+    # page, that indicates that we're looking at a post page,
+    # rather than a comment page
+    subtext_td = soup.find('td', attrs={'class': 'subtext'})
+    is_comment_page = True if subtext_td is None else False
+
     if is_comment_page:
         # construct Comment Page object
         comment_tr = soup.find('tr', attrs={'class' : 'athing'})
