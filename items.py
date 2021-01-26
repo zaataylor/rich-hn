@@ -320,6 +320,18 @@ def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
 
     return item_id, content
 
+def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
+    """Extracts the text content of a post based on post type."""
+    s = ''
+    if item_type == ITEM_TYPE['STORY']:
+        pass
+    elif item_type == ITEM_TYPE['JOB']:
+        pass
+    else:
+        # dealing with a poll type Item, as no pollopt type Items are ever created
+        pass
+    return s
+
 def extract_item_type(item_id: int, title: str , votelink_present: bool,
     sitebit_present: bool):
     """Extract the type of an item."""

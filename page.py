@@ -3,8 +3,8 @@ from typing import Dict, Tuple
 import textwrap
 
 from common import get_html, HN_NEWS_URL
-from items import Item, extract_post_item_main, extract_post_item_subtext, extract_comment_info, \
-    extract_comment_tree, extract_comment_tree_ds
+from items import Item, extract_post_item_main, extract_post_item_subtext, extract_post_item_text, \
+    extract_comment_info, extract_comment_tree, extract_comment_tree_ds
 from tree import Tree
 
 import bs4
@@ -131,10 +131,11 @@ def extract_page(html: str) -> Page:
         return CommentPage(pg_num, has_next, item=item, comments=comment_tree)
     else:
         # construct Post Page object
+        fatitem_table = soup.find('table', attrs={'class': 'fatitem'})
         post_tr = soup.find('tr', attrs={'class' : 'athing'})
         post_td = soup.find('td', attrs={'class' : 'subtext'})
         comment_tree_table = soup.find('table', attrs={'class' : 'comment-tree'})
-        item, comment_tree = extract_post_page(post_tr, post_td, comment_tree_table)
+        item, comment_tree = extract_post_page(fatitem_table, post_tr, post_td, comment_tree_table)
         return PostPage(pg_num, has_next, item=item, comments=comment_tree)
 
 # Extraction functions: these functions extract Items and information
@@ -181,7 +182,8 @@ def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tu
 
     return item, comment_tree 
 
-def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs4.Tag) -> Tuple[Item, Dict]:
+def extract_post_page(fatitem_table: bs4.Tag, post_tr: bs4.Tag, post_td: bs4.Tag,
+    comment_tree_table: bs4.Tag) -> Tuple[Item, Dict]:
     """Process HTML for a post page."""
     
     # extract main post info
@@ -192,7 +194,12 @@ def extract_post_page(post_tr: bs4.Tag, post_td: bs4.Tag, comment_tree_table: bs
     # extract subtext info
     _, subtext_info = extract_post_item_subtext(post_td)
     item.content.update(subtext_info)
-    
+
+    # extract text content of the post based on the type
+    # of the post (Story, Job, Poll)
+    text = extract_post_item_text(item.content['type'], fatitem_table)
+    item.content.update({'text' : text})
+
     # extract comment tree
     comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
     comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
