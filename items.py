@@ -323,8 +323,17 @@ def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
 def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
     """Extracts the text content of a post based on post type."""
     s = ''
+    # distinguish active from inactive posts by looking for <form> elements with 
+    # an action attribute with value equal to "comment" and method attribute equal
+    # to "post"
+    
+    # get the number of <tr> elements
+    # knowing if a given post is active or not also enables us to infer how many
+    # <tr> elements we expect to find in the the fatiem_table tag
     if item_type == ITEM_TYPE['STORY']:
-        pass
+        # if len(tr_elems) == 6:
+        #   active story with text
+        # elif len(tr_elems) == 2:
     elif item_type == ITEM_TYPE['JOB']:
         pass
     else:
