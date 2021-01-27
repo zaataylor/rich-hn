@@ -326,11 +326,19 @@ def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
     # distinguish active from inactive posts by looking for <form> elements with 
     # an action attribute with value equal to "comment" and method attribute equal
     # to "post"
-    
+    comment_form = fatitem_table.find('form', attrs={'action': 'comment', 'method': 'post'})
+    is_active = False if comment_form is None else False
+    if is_active:
+        pass
+    else:
+        pass
     # get the number of <tr> elements
     # knowing if a given post is active or not also enables us to infer how many
     # <tr> elements we expect to find in the the fatiem_table tag
+    fatitem_tbody = fatitem_table.tbody
+    tr_elems = fatitem_tbody.find('tr', recursive=False)
     if item_type == ITEM_TYPE['STORY']:
+        pass
         # if len(tr_elems) == 6:
         #   active story with text
         # elif len(tr_elems) == 2:
