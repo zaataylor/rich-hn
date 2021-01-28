@@ -4,7 +4,7 @@ import textwrap
 
 from common import get_html, HN_NEWS_URL
 from items import Item, extract_post_item_main, extract_post_item_subtext, extract_post_item_text, \
-    extract_comment_info, extract_comment_tree, extract_comment_tree_ds
+    extract_comment_info, extract_comment_tree, extract_comment_tree_ds, ITEM_TYPE
 from tree import Tree
 
 import bs4
@@ -56,15 +56,16 @@ class CommentPage(Page):
         main_comment = prettify_string(self.item.get_text(), '')
         main_comment = main_comment.replace('<p>', '\n\n')
         s += main_comment + '\n\n'
-        for lineage in self.comments.values():
-            comment = lineage[-1][1]
-            ind = '\t' * len(lineage)
-            s += '{}:'.format(prettify_string(comment.get_user(), ind))
-            s += '\n'
-            pretty_comment = prettify_string(comment.get_text(), ind)
-            pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
-            s += pretty_comment
-            s += '\n\n'
+        if self.comments is not None:
+            for lineage in self.comments.values():
+                comment = lineage[-1][1]
+                ind = '\t' * len(lineage)
+                s += '{}:'.format(prettify_string(comment.get_user(), ind))
+                s += '\n'
+                pretty_comment = prettify_string(comment.get_text(), ind)
+                pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
+                s += pretty_comment
+                s += '\n\n'
         return s
 
 class PostPage(Page):
@@ -83,15 +84,21 @@ class PostPage(Page):
     def __str__(self):
         s = ''
         s += '{}\n'.format(self.item.get_title())
-        for lineage in self.comments.values():
-            comment = lineage[-1][1]
-            ind = '\t' * len(lineage)
-            s += '{}:'.format(prettify_string(comment.get_user(), ind))
-            s += '\n'
-            pretty_comment = prettify_string(comment.get_text(), ind)
-            pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
-            s += pretty_comment
+        main_description = self.item.get_text()
+        if main_description is not None:
+            pretty_description = prettify_string(main_description, '')
+            s += pretty_description.replace('<p>', '\n\n')
             s += '\n\n'
+        if self.comments is not None:
+            for lineage in self.comments.values():
+                comment = lineage[-1][1]
+                ind = '\t' * len(lineage)
+                s += '{}:'.format(prettify_string(comment.get_user(), ind))
+                s += '\n'
+                pretty_comment = prettify_string(comment.get_text(), ind)
+                pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
+                s += pretty_comment
+                s += '\n\n'
         return s
 
 def prettify_string(text: str, ind: str) -> str:
@@ -200,10 +207,12 @@ def extract_post_page(fatitem_table: bs4.Tag, post_tr: bs4.Tag, post_td: bs4.Tag
     text = extract_post_item_text(item.content['type'], fatitem_table)
     item.content.update({'text' : text})
 
-    # extract comment tree
-    comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
-    comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
-    item.content.update({'kids': comment_tree})
+    # extract comment tree, if applicable
+    comment_tree = None
+    if item.content['type'] != ITEM_TYPE['JOB']:
+        comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
+        comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
+        item.content.update({'kids': comment_tree})
 
     return item, comment_tree
 
