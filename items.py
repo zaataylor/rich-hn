@@ -114,15 +114,15 @@ def extract_comment_info(comment_tr: bs4.Tag) -> Dict:
     if commtext_span is None:
         text = comment_div.contents[0].string
     else:
-        text = extract_comment_text(commtext_span)
+        text = extract_item_text(commtext_span)
     content['text'] = text
 
     return content
 
-def extract_comment_text(comment_text_span: bs4.Tag) -> str:
-    """Extract the text content of a comment."""
+def extract_item_text(item_text_elmt: bs4.Tag) -> str:
+    """Extract the text content of an item."""
     fins = ''
-    for tag in comment_text_span.contents:
+    for tag in item_text_elmt.contents:
         if tag.name != 'div':
             # since we're using the raw string representation, which would include
             # named and numeric character references such as &gt; and &lt;, we want
@@ -154,6 +154,9 @@ def extract_comment_text(comment_text_span: bs4.Tag) -> str:
     # and empty strings where '</p>' are
     # fins = fins.replace('<p>', '\n\n')
     fins = fins.replace('</p>', '')
+    # remove <td> and </td> elements, too
+    fins = fins.replace('<td>', '')
+    fins = fins.replace('</td>', '')
 
     return fins
 
@@ -322,32 +325,37 @@ def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
 
 def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
     """Extracts the text content of a post based on post type."""
-    s = ''
-    # distinguish active from inactive posts by looking for <form> elements with 
-    # an action attribute with value equal to "comment" and method attribute equal
-    # to "post"
-    comment_form = fatitem_table.find('form', attrs={'action': 'comment', 'method': 'post'})
-    is_active = False if comment_form is None else False
-    if is_active:
-        pass
+    text = ''
+    # Get the number of <tr> elements
+    tr_elems = fatitem_table.find_all('tr', recursive=False)
+    TR_TEXT_INDEX = 3
+    TR_POLL_INDEX = 5
+
+    if len(tr_elems) >= 4:
+        text_tr = tr_elems[TR_TEXT_INDEX]
+        # the second <td> has the text we needed
+        text_td = text_tr.td.next_sibling
+        text = extract_item_text(text_td)
+
+        if item_type == ITEM_TYPE['POLL']:
+            # we have a poll item, and expect >= 6 <tr> elements
+            # Strategy: get <td>s with class "comment" and <span>s with class "score"
+            # then zip these two together as iterables. Maybe form items from them too?
+            poll_tr = tr_elems[TR_POLL_INDEX]
+            poll_titles = poll_tr.find_all('td', attrs={'class': 'comment'})
+            poll_points = poll_tr.find_all('span', attrs={'class': 'score'})
+            for title_tag, points_tag in zip(poll_titles, poll_points):
+                poll_item_title = title_tag.text
+                points = points_tag.text.split('points')[0].strip()
+                text += '\n\t{}\n\t{}'.format(poll_item_title, points)
+                # item_id = int(points_tag['id'].split('_')[1])
+                # content = {'text': text, 'points': points, 'type': ITEM_TYPE['POLLOPT']}
+                # i = Item(item_id, content=content)
     else:
+        # no text content in this item, so
+        # we'll end up returning the empty string
         pass
-    # get the number of <tr> elements
-    # knowing if a given post is active or not also enables us to infer how many
-    # <tr> elements we expect to find in the the fatiem_table tag
-    fatitem_tbody = fatitem_table.tbody
-    tr_elems = fatitem_tbody.find('tr', recursive=False)
-    if item_type == ITEM_TYPE['STORY']:
-        pass
-        # if len(tr_elems) == 6:
-        #   active story with text
-        # elif len(tr_elems) == 2:
-    elif item_type == ITEM_TYPE['JOB']:
-        pass
-    else:
-        # dealing with a poll type Item, as no pollopt type Items are ever created
-        pass
-    return s
+    return text
 
 def extract_item_type(item_id: int, title: str , votelink_present: bool,
     sitebit_present: bool):
