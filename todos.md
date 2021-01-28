@@ -3,9 +3,10 @@
     - [] Figure out how to get text content of items that are:
         - [&check;] Comments
         - [] Polls
-        - [] Ask HNs
-        - [] Show HNs
-        - [] Jobs
+            - [] Go back and make individual Pollopt into objects that are contained in a field called "parts" in an item's content dict. This way, I can append these to the description string of a poll
+        - [&check;] Ask HNs
+        - [&check;] Show HNs
+        - [&check;] Jobs
     - [&check;] Figure out how to extract comment trees under a given post
     - [&check;] Figure out where and how to store comment trees
         - [&check;] Store comment trees as a field "kids" with the `Item` those kids are children of
@@ -15,7 +16,10 @@
         - [&check;] Read about the use of the [Singleton Pattern](https://python-patterns.guide/gang-of-four/singleton/) in Python
         - [] Implement `ItemDB` ~~as a Singleton~~ with the [Global Object Pattern](https://python-patterns.guide/python/module-globals/)
         - [] Decide on where the set `ItemDB`. Should it be in `page.py` or `pages.py`?
+            - It might actually be better for the `ItemDB` to not be in the either of these, and instead a global `ItemDB` object should be inherited from another, higher level module.
+    - [&check;] Figure out a more effective way to identify the difference between comment and post pages without using the `storyon` class attribute. Why? This will fail in the case that I am on a post page without any comments on it. As it turns out, the mere presence of a `<td>` with class equal to "subtext" differentiates comment pages from post pages, so I'll use that.
     - [] Figure out a good way to update comment trees
+    - [] Figure out whether or not to get rid of the `<p>` or `</p>` when getting the text for a comment string
 - Display
     - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
     - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
