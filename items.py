@@ -330,7 +330,7 @@ def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
 
 def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
     """Extracts the text content of a post based on post type."""
-    text = ''
+    text = None
     pollopts = []
     # Get the number of <tr> elements
     tr_elems = fatitem_table.find_all('tr', recursive=False)
@@ -342,6 +342,14 @@ def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
         # the second <td> has the text we needed
         text_td = text_tr.td.next_sibling
         text = extract_item_text(text_td)
+        s = bs4.BeautifulSoup(text, 'html.parser')
+        is_active = s.find('form', attrs={'method': 'post', 'action': 'comment'})
+        # if we find this <form> element with the given attributes,
+        # we know the post is active, and since the <form> element is 
+        # in the position that we'd expect text content to be in, we know the
+        # post did not have any text. So, we check if is_active is None or not
+        if is_active is not None:
+            text = None   
 
         if item_type == ITEM_TYPE['POLL']:
             # we have a poll item, and expect >= 6 <tr> elements
@@ -360,7 +368,7 @@ def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
                 pollopts.append(i)
     else:
         # no text content in this item, so
-        # we'll end up returning the empty string
+        # we'll end up returning None
         pass
     return text, pollopts
 
