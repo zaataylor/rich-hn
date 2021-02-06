@@ -18,7 +18,7 @@ class Pages(object):
     def __str__(self):
         s = ''
         for p in self.pages:
-            s += 'Page Number {}:\n\n{}\n'.format(p.pg_number, p)
+            s += '(page {}):\n{}\n'.format(p.pg_number, p)
         return s
 
     def update_db(self):
