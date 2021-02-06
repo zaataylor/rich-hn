@@ -40,12 +40,12 @@ class NewsPage(Page):
 class CommentPage(Page):
     """Represents a page containing a comment and any subcomments."""
     item: Item = None
-    comments: Tree = None
+    comments: Dict = None
     # comment pages have a dict member called items, but this dict
     # will only ever have one key that corresponds to the main item
     # on the comment page itself
     def __init__(self, pg_number, has_next, item: Item = None,
-        comments: Tree = None):
+        comments = None):
         super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
@@ -71,12 +71,12 @@ class CommentPage(Page):
 class PostPage(Page):
     """Represents a page containing the frontmatter of a post on HN, as well as any associated comments."""
     item: Item = None
-    comments: Tree = None
+    comments: Dict = None
     # post pages have a dict member called items, but this dict
     # will only ever have one key that corresponds to the main item
     # on the post page itself
     def __init__(self, pg_number, has_next, item: Item = None,
-        comments: dict = None):
+        comments = None):
         super().__init__(pg_number, has_next)
         self.item = item
         self.comments = comments
