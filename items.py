@@ -24,6 +24,11 @@ class Item(object):
         if self.content is not None:
             return self.content.get('text', None)
 
+    def get_parts(self):
+        """Get the pollopt type Items corresponding to this Item or return None if there are none."""
+        if self.content is not None:
+            return self.content.get('parts', None)
+
     def get_id(self):
         """Get ID of this Item."""
         return self.item_id
@@ -33,7 +38,7 @@ class Item(object):
         return self.content
 
     def get_kids(self):
-        """Get child comment tree of this Item or return None if there are None."""
+        """Get child comment tree of this Item or return None if there are none."""
         if self.content is not None:
             return self.content.get('kids', None)
 
@@ -48,7 +53,7 @@ class Item(object):
             return self.content.get('user', None)
 
     def get_total_comments(self):
-        """Get the total number of comments on this Item or return None if there are None."""
+        """Get the total number of comments on this Item or return None if there are none."""
         if self.content is not None:
             return self.content.get('total_comments', None)
 
@@ -326,6 +331,7 @@ def extract_post_item_subtext(post_td: bs4.Tag) -> Tuple[int, Dict]:
 def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
     """Extracts the text content of a post based on post type."""
     text = ''
+    pollopts = []
     # Get the number of <tr> elements
     tr_elems = fatitem_table.find_all('tr', recursive=False)
     TR_TEXT_INDEX = 3
@@ -343,19 +349,20 @@ def extract_post_item_text(item_type: str, fatitem_table: bs4.Tag) -> str:
             # then zip these two together as iterables. Maybe form items from them too?
             poll_tr = tr_elems[TR_POLL_INDEX]
             poll_titles = poll_tr.find_all('td', attrs={'class': 'comment'})
-            poll_points = poll_tr.find_all('span', attrs={'class': 'score'})
-            for title_tag, points_tag in zip(poll_titles, poll_points):
-                poll_item_title = title_tag.text
-                points = points_tag.text.split('points')[0].strip()
-                text += '\n\t{}\n\t{}'.format(poll_item_title, points)
-                # item_id = int(points_tag['id'].split('_')[1])
-                # content = {'text': text, 'points': points, 'type': ITEM_TYPE['POLLOPT']}
-                # i = Item(item_id, content=content)
+            poll_scores = poll_tr.find_all('span', attrs={'class': 'score'})
+            for title_tag, points_tag in zip(poll_titles, poll_scores):
+                polltext = title_tag.text.strip()
+                score = points_tag.text.split('points')[0].strip()
+                item_id = int(points_tag['id'].split('_')[1])
+
+                content = {'text': polltext, 'score': score, 'type': ITEM_TYPE['POLLOPT']}
+                i = Item(item_id, content=content)
+                pollopts.append(i)
     else:
         # no text content in this item, so
         # we'll end up returning the empty string
         pass
-    return text
+    return text, pollopts
 
 def extract_item_type(item_id: int, title: str , votelink_present: bool,
     sitebit_present: bool):
