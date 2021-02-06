@@ -89,6 +89,12 @@ class PostPage(Page):
             pretty_description = prettify_string(main_description, '')
             s += pretty_description.replace('<p>', '\n\n')
             s += '\n\n'
+        parts = self.item.get_parts()
+        if parts is not None:
+            for pollitem in parts:
+                s += '\t' + pollitem.get_text() + '\n\t' + pollitem.get_score()
+                s += '\n\n'
+            s += '\t===================================\n\n'
         if self.comments is not None:
             for lineage in self.comments.values():
                 comment = lineage[-1][1]
@@ -204,8 +210,11 @@ def extract_post_page(fatitem_table: bs4.Tag, post_tr: bs4.Tag, post_td: bs4.Tag
 
     # extract text content of the post based on the type
     # of the post (Story, Job, Poll)
-    text = extract_post_item_text(item.content['type'], fatitem_table)
+    text, pollopts = extract_post_item_text(item.content['type'], fatitem_table)
     item.content.update({'text' : text})
+    # add polloptions to the 'parts' member of this item
+    if pollopts:
+        item.content.update({'parts': pollopts})
 
     # extract comment tree, if applicable
     comment_tree = None
