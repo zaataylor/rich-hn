@@ -1,3 +1,5 @@
+from typing import List
+
 from items import Item
 
 class ItemDB(object):
@@ -5,8 +7,22 @@ class ItemDB(object):
     items: dict = None
 
     def __init__(self, items: dict = None):
-        self.items = items
+        if items is None:
+            self.items = {}
+        else:
+            self.items = items
+
+    def __str__(self):
+        s = ''
+        if self.items is not None:
+            for item in self.items.values():
+                s += '{} ({})\n'.format(item.get_title(), item.get_id())
+        return s
     
+    def add_all_items(self, items: List[Item]):
+        for item in items:
+            self.add_item(item)
+
     def add_item(self, i: Item):
         if self.items.get(i.get_id(), None) is not None:
             self.update_item(i)
