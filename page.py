@@ -34,7 +34,7 @@ class NewsPage(Page):
     def __str__(self):
         s = ''
         for item_id, rank in self.ranks.items():
-            s += '{:>3}. {}\n'.format(rank, self.items[item_id].get_title())
+            s += '{:>3}. {} ({})\n'.format(rank, self.items[item_id].get_title(), item_id)
         return s
 
 class CommentPage(Page):
