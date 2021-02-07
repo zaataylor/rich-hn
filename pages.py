@@ -1,10 +1,7 @@
 from typing import List
 
-from page import Page, NewsPage, CommentPage, PostPage, extract_page, DEFAULT_PAGE_NUM
+from page import Page, NewsPage, extract_page, DEFAULT_PAGE_NUM
 from common import get_html, HN_ITEMS_URL, HN_NEWS_URL
-from itemdb import ItemDB
-
-items_db = ItemDB(items={})
 
 class Pages(object):
     """Represents a collection of Pages on HN."""
@@ -20,18 +17,6 @@ class Pages(object):
         for p in self.pages:
             s += '(page {}):\n{}\n'.format(p.pg_number, p)
         return s
-
-    def update_db(self):
-        """Update the ItemDB with one or more Items."""
-        if self.pages is not None:
-            first_pg = self.pages[0]
-            if isinstance(first_pg, NewsPage):
-                for p in self.pages:
-                    for item in p.items.values():
-                        items_db.add_item(item)
-            else:
-                for p in self.pages:
-                    items_db.add_item(p.item)
 
     def get_current_page(self):
         """Get the current Page."""
