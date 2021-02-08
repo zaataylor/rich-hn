@@ -19,6 +19,17 @@ class ItemDB(object):
                 s += '{} ({})\n'.format(item.get_title(), item.get_id())
         return s
     
+    def get_item(self, item_id: int):
+        return self.items.get(item_id, None)
+
+    def delete_item(self, item_id: int):
+        """Delete an Item by ID, returning True if successful and False if not."""
+        try:
+            del self.items[item_id]
+            return True
+        except KeyError:
+            return False
+
     def add_all_items(self, items: List[Item]):
         for item in items:
             self.add_item(item)
