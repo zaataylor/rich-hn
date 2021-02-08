@@ -59,7 +59,7 @@ class CommentPage(Page):
         if self.comments is not None:
             for lineage in self.comments.values():
                 comment = lineage[-1][1]
-                ind = '\t' * len(lineage)
+                ind = '  ' * len(lineage)
                 s += '{}:'.format(prettify_string(comment.get_user(), ind))
                 s += '\n'
                 pretty_comment = prettify_string(comment.get_text(), ind)
@@ -98,7 +98,7 @@ class PostPage(Page):
         if self.comments is not None:
             for lineage in self.comments.values():
                 comment = lineage[-1][1]
-                ind = '\t' * len(lineage)
+                ind = '  ' * len(lineage)
                 s += '{}:'.format(prettify_string(comment.get_user(), ind))
                 s += '\n'
                 pretty_comment = prettify_string(comment.get_text(), ind)
@@ -109,7 +109,7 @@ class PostPage(Page):
 
 def prettify_string(text: str, ind: str) -> str:
     """Prettifies a string into a string justified by ind."""
-    t = textwrap.fill(text, width=100, break_long_words=True, break_on_hyphens=False)
+    t = textwrap.fill(text, width=80, break_long_words=False, break_on_hyphens=False)
     return textwrap.indent(t, prefix=ind)
 
 # The main extraction function: this function takes the
@@ -218,7 +218,7 @@ def extract_post_page(fatitem_table: bs4.Tag, post_tr: bs4.Tag, post_td: bs4.Tag
 
     # extract comment tree, if applicable
     comment_tree = None
-    if item.content['type'] != ITEM_TYPE['JOB']:
+    if item.content['type'] != ITEM_TYPE['JOB'] and comment_tree_table is not None:
         comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
         comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
         item.content.update({'kids': comment_tree})
