@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
 import textwrap
 
 from common import get_html, HN_NEWS_URL
@@ -251,9 +251,30 @@ def extract_news_page(t: bs4.Tag) -> Tuple[Dict, Dict]:
 
     return ranks, items
 
-def extract_ranks(itemlist_table: bs4.Tag) -> Dict[int, int]:
+def extract_ranks(html_or_tag: Any) -> Dict[int, Tuple[int, str]]:
     """Extracts all of the ranks for the Items on a given News Page."""
-    pass
+    # this way, we can pass in pre-bs4'd stuff or raw stuff
+    if type(html_or_tag) is str:
+        itemlist_table = bs4.BeautifulSoup(html_or_tag, 'html.parser')
+    else:
+        itemlist_table = html_or_tag
+
+    ranks = {}
+    # get all <tr> with class 'id' and class 'athing'
+    athing_trs = itemlist_table.find_all('tr', attrs={'class': 'athing'})
+    for tr in athing_trs:
+        item_id = int(tr['id'])
+
+        # extract text of <span> element with class of "rank"
+        rank_span = tr.find('span', attrs={'class': 'rank'})
+        rank_text = rank_span.text
+        rank = int(rank_text[0:len(rank_text) - 1])
+
+        storylink_a = tr.find('a', attrs={'class': 'storylink'})
+        title = storylink_a.text
+
+        ranks[rank] = (item_id, title)
+    return ranks
 
 def extract_rank(t: bs4.Tag) -> int:
     """Extract rank from an Item on a news page."""
