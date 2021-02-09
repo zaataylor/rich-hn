@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Tuple
 
-from page import Page, NewsPage, extract_page, DEFAULT_PAGE_NUM
+from page import Page, NewsPage, extract_page, extract_ranks, DEFAULT_PAGE_NUM
 from common import get_html, HN_ITEMS_URL, HN_NEWS_URL
+
+ITEMS_PER_NEWS_PAGE = 30
 
 class Pages(object):
     """Represents a collection of Pages on HN."""
@@ -55,6 +57,15 @@ def get_post_pages_by_id(item_id: int) -> Pages:
         pages.append(pg)
 
     return Pages(pages)
+
+def get_post_by_rank(rank: int) -> Tuple[int, str]:
+    """Get information (title, ID) about a post by rank."""
+    # calculate page to visit based on the rank 
+    # (there are 30 results/page)
+    page_num = (rank // ITEMS_PER_NEWS_PAGE) + 1
+    url = HN_NEWS_URL + '?p={}'.format(page_num)
+    ranks = extract_ranks(get_html(url))
+    return ranks[rank]
 
 def get_news_pages_by_num(page_nums: List[int]) -> Pages:
     """Get News Pages indicated by a list of numbers."""
