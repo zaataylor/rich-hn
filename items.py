@@ -100,7 +100,8 @@ def extract_comment_info(comment_tr: bs4.Tag) -> Dict:
     comhead_span = comment_tr.find('span', attrs={'class' : 'comhead'})
 
     user = comhead_span.find('a', attrs={'class' : 'hnuser'})
-    content['user'] = user.string
+    if user is not None:
+        content['user'] = user.string
 
     par_span = comhead_span.find('span', attrs={'class' : 'par'})
     if par_span.string is not None:

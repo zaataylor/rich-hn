@@ -189,8 +189,10 @@ def extract_comment_page(comment_tr: bs4.Tag, comment_tree_table: bs4.Tag) -> Tu
     item = Item(main_item_id, content=content)
 
     # extract comment tree
-    comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
-    comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
+    comment_tree = None
+    if comment_tree_table is not None:
+        comment_tree_ds = extract_comment_tree_ds(comment_tree_table)
+        comment_tree = extract_comment_tree(main_item_id, comment_tree_ds)
     item.content.update({'kids': comment_tree})
 
     return item, comment_tree 
