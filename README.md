@@ -20,7 +20,6 @@ cd rich-hn
 2. Install the required dependencies and activate a virtual environment by running the following:
 ```bash
 pipenv install
-pipenv shell
 ```
 3. Run `python mvp.py` to start the application
 4. Have fun! :)
