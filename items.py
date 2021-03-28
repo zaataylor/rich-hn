@@ -152,9 +152,11 @@ def extract_item_text(item_text_elmt: bs4.Tag) -> str:
     # (RFC 3986: https://tools.ietf.org/html/rfc3986#section-2),
     # followed by the string ' rel="nofollow">', followed by >= 1 valid URL characters, 
     # followed by '</a>', which indicates the end of an anchor tag
+    
+    #TODO: Need to also handle accented characters in URLs
     fins = re.sub(
         r'<a href="([a-zA-Z0-9:~/.#@!$&?_%+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&?%_+,;=()\'-]+)</a>',
-        r'[link=\1]\2 [/link]',
+        r'[link=\1]',
         fins)
     # Insert newlines where <p> tags are,
     # and empty strings where '</p>' are
@@ -163,7 +165,7 @@ def extract_item_text(item_text_elmt: bs4.Tag) -> str:
     # remove <td> and </td> elements, too
     fins = fins.replace('<td>', '')
     fins = fins.replace('</td>', '')
-
+    fins = fins.strip()
     return fins
 
 def extract_comment_tree_ds(comment_tree_table: bs4.Tag) -> Tuple[List[int], List[int],
