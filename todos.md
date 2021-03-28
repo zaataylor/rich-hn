@@ -1,0 +1,51 @@
+# TODOs
+- Data Model
+    - [] Figure out how to associate titles and item IDs so users can enter partial titles of posts and still get good results.
+    - [] Could potentially implement a sort of post-history mechanism by simply adding a queue of Item IDs whenever a user visits a particular site. 
+    - [] Could also make it possible for users to save the text content of a post by simply using `s` or some other key.
+    - [] Create a way for users to bookmark the content
+        - One method of implementation:
+            - Make a simple CSV file
+            - When user wants to bookmark the current story they're on, they can simple press `b`
+            - When they do so, save the ID of the Item concatenated on to the end of the HN URL, the current title of it, and the date and time at which the item was saved (in UTC)
+        - A user could bookmark a post by ID by doing something like `b-{item_id}`.
+    - [] Consider creating a function that will get just the updated content of a specific page for a given post, so that way I don't have to reparse the HTML for the entire page
+    - [] Figure out where to take advantage of caching
+    - [] Figure out a good way to update comment trees (if there is a good way)
+    - [] Figure out how to index into a comment tree so that different pages have a different view of a comment tree
+    - [] Figure out proper way to implement `ItemDB` with Global Object Pattern
+        - [&check;] Read about the use of the [Singleton Pattern](https://python-patterns.guide/gang-of-four/singleton/) in Python
+        - [] Implement `ItemDB` ~~as a Singleton~~ with the [Global Object Pattern](https://python-patterns.guide/python/module-globals/)
+        - [] Decide on where the set `ItemDB`. Should it be in `page.py` or `pages.py`?
+            - It might actually be better for the `ItemDB` to not be in the either of these, and instead a global `ItemDB` object should be inherited from another, higher level module.
+    - [&check;] Handle items labeled as `[dead]`
+    - [&check;] Implement the `extract_ranks` function in `page.py`
+    - [&check;] Figure out how to get text content of items that are:
+        - [&check;] Comments
+        - [&check;] Polls
+            - [&check;] Go back and make individual Pollopt into objects that are contained in a field called "parts" in an item's content dict. This way, I can append these to the description string of a poll
+        - [&check;] Ask HNs
+        - [&check;] Show HNs
+        - [&check;] Jobs
+    - [&check;] Figure out how to extract comment trees under a given post
+    - [&check;] Figure out where and how to store comment trees
+        - [&check;] Store comment trees as a field "kids" with the `Item` those kids are children of
+        - [&check;] `Page`s will also store a reference to the comment tree on their own
+    - [&check;] Figure out a more effective way to identify the difference between comment and post pages without using the `storyon` class attribute. Why? This will fail in the case that I am on a post page without any comments on it. As it turns out, the mere presence of a `<td>` with class equal to "subtext" differentiates comment pages from post pages, so I'll use that.
+    - [&check;] Figure out whether or not to get rid of the `<p>` or `</p>` when getting the text for a comment string
+- Display
+    - [] Consider finding a way to shorten links. In particular, Sam gave me the interesting idea to run a local link-shortening service so that way, I can shorten links easily.
+    - [] Figure out how to use `rich`'s Markdown support for making blockquotes/code blocks
+    - [] Figure out how to use `rich`'s Markdown support for making pager/`more` style scrolling UI. Alternatively, figure out how else to do it without using `rich`.
+    - [] Figure out how to display posts in a table or list style
+    - [] Figure out how to go about displaying empty pages. For instance, if the number of comments on a given page only spans two pages, and a user tries to navigate to the nonexistent third page, what should happens?
+- UX
+    - [] Figure out how to support Vim standard keybindings (`h`, `j`, `k`, `l`) for scrolling up and down, and navigating forward and backward through pages using.
+    - [] Figure out how to use up and down arrow keys for scrolling up and down, and navigating to forward and backward through pages using the left and right arrow keys.
+    - [] Figure out how to make the keybindings for scrolling and navigating customizable
+    - [] Figure out how to display different colors for `Ask HN`, `Show HN`, `stories`, and `jobs` posts.
+    - [] Figure out how to do manual updating of a page's contents using a specific keybinding.
+    - [] Figure out a reasonable experience for when a user tries to navigate to a page that doesn't exist, such as navigating to the third page of comments for a post that only has two pages of comments.
+    - [] Make a way for users to bookmark a given post
+- Publicity
+    - Let the people [here](https://news.ycombinator.com/item?id=26040504) know about the project once it's in a working state.
