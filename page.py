@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from typing import Dict, Tuple, Any
 import textwrap
+import math
 
 from common import get_html, HN_NEWS_URL
 from items import Item, extract_post_item_main, extract_post_item_subtext, extract_post_item_text, \
@@ -8,6 +9,9 @@ from items import Item, extract_post_item_main, extract_post_item_subtext, extra
 from tree import Tree
 
 import bs4
+import colorama
+from colorama import Fore, Back
+colorama.init(autoreset=True)
 
 DEFAULT_PAGE_NUM = 1
 
@@ -54,18 +58,15 @@ class CommentPage(Page):
         s = ''
         s += '{}:\n'.format(self.item.get_user())
         main_comment = prettify_string(self.item.get_text(), '')
-        main_comment = main_comment.replace('<p>', '\n\n')
-        s += main_comment + '\n\n'
+        s += main_comment + '\n'
         if self.comments is not None:
             for lineage in self.comments.values():
                 comment = lineage[-1][1]
                 ind = '  ' * len(lineage)
-                s += '{}:'.format(prettify_string(comment.get_user(), ind))
+                s += Fore.BLUE + '{}{}'.format(ind, comment.get_user() + ':')
                 s += '\n'
                 pretty_comment = prettify_string(comment.get_text(), ind)
-                pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
                 s += pretty_comment
-                s += '\n\n'
         return s
 
 class PostPage(Page):
@@ -87,8 +88,8 @@ class PostPage(Page):
         main_description = self.item.get_text()
         if main_description is not None:
             pretty_description = prettify_string(main_description, '')
-            s += pretty_description.replace('<p>', '\n\n')
-            s += '\n\n'
+            s += pretty_description
+            s += '\n'
         parts = self.item.get_parts()
         if parts is not None:
             for pollitem in parts:
@@ -99,18 +100,69 @@ class PostPage(Page):
             for lineage in self.comments.values():
                 comment = lineage[-1][1]
                 ind = '  ' * len(lineage)
-                s += '{}:'.format(prettify_string(comment.get_user(), ind))
+                s += Fore.BLUE + '{}{}'.format(ind, comment.get_user() + ':')
                 s += '\n'
                 pretty_comment = prettify_string(comment.get_text(), ind)
-                pretty_comment = pretty_comment.replace('<p>', '\n\n' + ind)
                 s += pretty_comment
-                s += '\n\n'
         return s
 
-def prettify_string(text: str, ind: str) -> str:
+def prettify_string(text: str, ind: str, width=80) -> str:
     """Prettifies a string into a string justified by ind."""
-    t = textwrap.fill(text, width=80, break_long_words=False, break_on_hyphens=False)
-    return textwrap.indent(t, prefix=ind)
+    text_blobs = text.split('<p>')
+    fins = ''
+    for text_blob in text_blobs:
+        t = textwrap.fill(text_blob, width=width, break_long_words=False, break_on_hyphens=False)
+
+        # handle inline quotes
+        if t.startswith('>'):
+            # number of newlines tells us number of lines in the wrapped
+            # text
+            num_newlines = t.count('\n')
+            # short comment
+            if num_newlines == 0:
+                t = '{}{}{}'.format(Back.CYAN, t, Back.RESET)
+            else:
+                j = ''
+                len_t = len(t)
+                start_range = 0
+                for i in range(0, num_newlines):
+                    newline_idx = t.find('\n', start_range)
+                    # last section of string (after a newline)
+                    if newline_idx == -1:
+                        j += '{}{}{}'.format(Back.CYAN, t[start_range:len_t], Back.RESET)
+                    else:
+                        j += '{}{}{}'.format(Back.CYAN, t[start_range: newline_idx + 1], Back.RESET) 
+                        start_range = newline_idx + 1
+                t = j
+
+        # make all links red in color
+        num_links = t.count('[link=')
+        if num_links != 0:
+            start_range = 0
+            t_len = len(t)
+            j = ''
+            for i in range(num_links):
+                idx_start = t.find('[link=', start_range)
+                idx_end = t.find(']', idx_start)
+                begin_j = t[start_range: idx_start]
+                link_part_j = '{}{}{}'.format(Fore.RED, t[(idx_start + len('[link=')): idx_end], Fore.RESET)
+
+                # last iteration (i.e. getting last link + other text after, if any)
+                if i == num_links - 1:
+                    end_j = t[idx_end + 1: t_len]   
+                else:
+                    # There are more links after this one, so don't
+                    # get any text after the link ends. 
+                    # Instead, set start_range appropriately so it
+                    # starts right after the end of the link's closing
+                    # ] bracket.
+                    end_j = ''
+                    start_range = idx_end + 1
+
+                j += begin_j + link_part_j + end_j
+            t = j
+        fins += textwrap.indent(t, prefix=ind) + '\n\n'
+    return fins
 
 # The main extraction function: this function takes the
 # HTML representing any given page on HN and uses indicators
