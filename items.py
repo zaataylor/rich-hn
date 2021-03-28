@@ -143,7 +143,7 @@ def extract_item_text(item_text_elmt: bs4.Tag) -> str:
     # Mark where blockquotes/code blocks are with a custom tag 
     # for rendering later on
     fins = fins.replace('<pre><code>', '[md]')
-    fins = fins.replace('</code></pre>', '[/md]')
+    fins = fins.replace('</code></pre>', '[/md]<p>')
 
     # Replace <a href="...">...</a> tags inside of <p> elements with the other link 
     # style required by rich, using regex.

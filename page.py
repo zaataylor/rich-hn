@@ -113,6 +113,39 @@ def prettify_string(text: str, ind: str, width=80) -> str:
     for text_blob in text_blobs:
         t = textwrap.fill(text_blob, width=width, break_long_words=False, break_on_hyphens=False)
 
+        # TODO: Make this work for multiline italicized text
+        # Underline Italics
+        t = t.replace('[italic]', '\033[4m')
+        t = t.replace('[/italic]', '\033[0m')
+
+        # TODO: refactor this
+        # Reverse video for code/markdown blocks
+        if t.startswith('[md]'):
+            # number of newlines tells us number of lines in the wrapped
+            # text
+            num_newlines = t.count('\n')
+            # short comment
+            if num_newlines == 0:
+                t = '{}{}{}'.format('\033[7m', t, '\033[0m')
+            else:
+                j = ''
+                len_t = len(t)
+                start_range = 0
+                # if there are k newlines, there are k + 1 text
+                # segments that need to be highlighted
+                for i in range(0, num_newlines + 1):
+                    newline_idx = t.find('\n', start_range)
+                    # last section of string (after a newline)
+                    if i == 0:
+                        j += '{}{}{}'.format('\033[7m', t[start_range + len('[md]'): newline_idx + 1], '\033[0m')
+                    elif i == num_newlines:
+                        end_md_idx = t.find('[/md]')
+                        j += '{}{}{}'.format('\033[7m', t[start_range: end_md_idx], '\033[0m')
+                    else:
+                        j += '{}{}{}'.format('\033[7m', t[start_range: newline_idx + 1], '\033[0m') 
+                    start_range = newline_idx + 1
+                t = j
+
         # handle inline quotes
         if t.startswith('>'):
             # number of newlines tells us number of lines in the wrapped
@@ -125,7 +158,9 @@ def prettify_string(text: str, ind: str, width=80) -> str:
                 j = ''
                 len_t = len(t)
                 start_range = 0
-                for i in range(0, num_newlines):
+                # if there are k newlines, there are k + 1 text
+                # segments that need to be highlighted
+                for i in range(0, num_newlines + 1):
                     newline_idx = t.find('\n', start_range)
                     # last section of string (after a newline)
                     if newline_idx == -1:
