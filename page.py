@@ -113,10 +113,26 @@ def prettify_string(text: str, ind: str, width=80) -> str:
     for text_blob in text_blobs:
         t = textwrap.fill(text_blob, width=width, break_long_words=False, break_on_hyphens=False)
 
-        # TODO: Make this work for multiline italicized text
-        # Underline Italics
-        t = t.replace('[italic]', '\033[4m')
-        t = t.replace('[/italic]', '\033[0m')
+        # Underline italicized text
+        if t.startswith('[italic]'):
+            num_newlines = t.count('\n')
+            if num_newlines == 0:
+                t = '{}{}{}'.format('\033[4m', t, '\033[0m')
+            else:
+                j = ''
+                len_t = len(t)
+                start_range = 0
+                for i in range(0, num_newlines + 1):
+                    newline_idx = t.find('\n', start_range)
+                    if i == 0:
+                        j += '{}{}{}'.format('\033[4m', t[start_range + len('[italic]'): newline_idx + 1], '\033[0m')
+                    elif i == num_newlines:
+                        end_italic_idx = t.find('[/italic]')
+                        j += '{}{}{}'.format('\033[4m', t[start_range: end_italic_idx], '\033[0m')
+                    else:
+                        j += '{}{}{}'.format('\033[4m', t[start_range: newline_idx + 1], '\033[0m')
+                    start_range = newline_idx + 1
+                t = j
 
         # TODO: refactor this
         # Reverse video for code/markdown blocks
