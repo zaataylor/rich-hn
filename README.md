@@ -10,7 +10,7 @@ Currently, an MVP version of the application is available, and details on how to
 ![News View](assets/rich-hn-news-view.png)
 
 ### Live Action Demo
-[![Live Action Demo](assets/rich-hn-news-view-2.png)](https://www.youtube.com/watch?v=TYElDtGCVlo)
+[![Live Action Demo](https://img.youtube.com/vi/TYElDtGCVlo/0.jpg))](https://www.youtube.com/watch?v=TYElDtGCVlo)
 
 # Prerequisites
 
