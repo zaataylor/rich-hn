@@ -2,7 +2,15 @@
 
 This is a CLI-based reader for [Hacker News](https://news.ycombinator.com/)! `rich-hn` will use the `curses` library (and potentially some capabilities from the [`rich`](https://github.com/willmcgugan/rich) Python library) to format Hacker News in a beautiful way.
 
-Currently, an MVP version of the application is available, and details on how to run it can be found below. The MVP version of the app uses `less` with the `-R` flag as a backend for convenience. 
+Currently, an MVP version of the application is available, and details on how to run it can be found below. The MVP version of the app uses [`less`](https://man7.org/linux/man-pages/man1/less.1.html) with the `-R` flag as a backend for convenience. 
+
+## Examples
+
+### News View
+![News View](assets/rich-hn-news-view.png)
+
+### Live Action Demo
+[![Live Action Demo](https://img.youtube.com/vi/TYElDtGCVlo/0.jpg)](https://www.youtube.com/watch?v=TYElDtGCVlo)
 
 # Prerequisites
 
@@ -52,4 +60,5 @@ Implementation Status Symbols
 # Known Issues
 Feel free to make issues related to problems you see when using the application. This will help me make it better! Here are some currently known problems:
 - For highly nested comments, text begins to wrap around to the other side of the terminal.
-- The underlining of multiline italic text is not working yet.
+- If italicized text is split over two or more paragraphs using only one italic block marker (i.e. the beginning of the first paragraph starts with the italic delimeter, and the end of the n-th paragraph ends with the italic delimeter), the italics for the second paragraph won't be rendered properly
+- Accented characters (e.g. é, ā, à, etc.) will currently break URL highlighting 
