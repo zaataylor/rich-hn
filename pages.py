@@ -1,4 +1,5 @@
 from typing import List, Tuple
+import math
 
 from page import Page, NewsPage, PostPage, CommentPage, extract_page, extract_ranks, DEFAULT_PAGE_NUM
 from common import get_html, HN_ITEMS_URL, HN_NEWS_URL
@@ -65,10 +66,7 @@ def get_post_by_rank(rank: int) -> Tuple[int, str]:
     # calculate page to visit based on the rank 
     #   (there are 30 results/page)
     page_num = rank / ITEMS_PER_NEWS_PAGE
-    if page_num <= 1:
-        page_num = 1
-    elif page_num > 1:
-        page_num = int(page_num) + 1
+    page_num = int(math.ceil(page_num))
 
     url = HN_NEWS_URL + '?p={}'.format(page_num)
     ranks = extract_ranks(get_html(url))

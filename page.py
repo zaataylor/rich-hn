@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Dict, Tuple, Any
 import textwrap
 import math
+import random
 
 from common import get_html, HN_NEWS_URL
 from items import Item, extract_post_item_main, extract_post_item_subtext, extract_post_item_text, \
@@ -12,6 +13,8 @@ import bs4
 import colorama
 from colorama import Fore, Back
 colorama.init(autoreset=True)
+
+COLORS = [Fore.CYAN, Fore.GREEN, Fore.RED, Fore.MAGENTA, Fore.YELLOW, Fore.BLUE]
 
 DEFAULT_PAGE_NUM = 1
 
@@ -38,7 +41,10 @@ class NewsPage(Page):
     def __str__(self):
         s = ''
         for item_id, rank in self.ranks.items():
-            s += '{:>3}. {} ({})\n'.format(rank, self.items[item_id].get_title(), item_id)
+            # pick a random color, seed with item ID so it's deterministic (thanks Sam)
+            random.seed(item_id)
+            color = COLORS[random.randint(0, len(COLORS) - 1)]
+            s += '{}{:>3}. {} ({}){}\n'.format(color, rank, self.items[item_id].get_title(), item_id, Fore.RESET)
         return s
 
 class CommentPage(Page):
@@ -84,7 +90,9 @@ class PostPage(Page):
 
     def __str__(self):
         s = ''
-        s += '{}\n'.format(self.item.get_title())
+        random.seed(self.item.get_id())
+        color = COLORS[random.randint(0, len(COLORS) - 1)]
+        s += '{}{}{}\n'.format(color, self.item.get_title(), Fore.RESET)
         main_description = self.item.get_text()
         if main_description is not None:
             pretty_description = prettify_string(main_description, '')
@@ -113,10 +121,37 @@ def prettify_string(text: str, ind: str, width=80) -> str:
     for text_blob in text_blobs:
         t = textwrap.fill(text_blob, width=width, break_long_words=False, break_on_hyphens=False)
 
-        # TODO: Make this work for multiline italicized text
-        # Underline Italics
-        t = t.replace('[italic]', '\033[4m')
-        t = t.replace('[/italic]', '\033[0m')
+        # TODO: Refactor this and add conditional to address the case where
+        # there's italicized content split over multiple paragraphs.
+        # An example of this can be found here: https://news.ycombinator.com/item?id=26634597
+        # For Firefox, use the Network tab and reload, then look at the HTML; Inspector
+        # will add starting/closing <i> tags to <p>'s starting with <i> or ending with </i>  
+
+        # Underline italicized text
+        if t.startswith('[italic]'):
+            num_newlines = t.count('\n')
+            if num_newlines == 0:
+                end_italic_idx = t.find('[/italic]')
+                t = '{}{}{}'.format('\033[4m', t[len('[italic]'): end_italic_idx], '\033[0m')
+            else:
+                j = ''
+                len_t = len(t)
+                start_range = 0
+                for i in range(0, num_newlines + 1):
+                    newline_idx = t.find('\n', start_range)
+                    if i == 0:
+                        j += '{}{}{}'.format('\033[4m', t[start_range + len('[italic]'): newline_idx + 1], '\033[0m')
+                    elif i == num_newlines:
+                        end_italic_idx = t.find('[/italic]')
+                        j += '{}{}{}'.format('\033[4m', t[start_range: end_italic_idx], '\033[0m')
+                    else:
+                        j += '{}{}{}'.format('\033[4m', t[start_range: newline_idx + 1], '\033[0m')
+                    start_range = newline_idx + 1
+                t = j
+        elif '[italic]' in t:
+            t = t.replace('[italic]', '\033[4m').replace('[/italic]', '\033[0m')
+        else:
+            pass
 
         # TODO: refactor this
         # Reverse video for code/markdown blocks
@@ -371,5 +406,3 @@ def extract_rank(t: bs4.Tag) -> int:
     rank_span = t.find('span', attrs={'class': 'rank'})
     rank = int(rank_span.string.split('.')[0]) if rank_span.string else ''
     return rank
-
-
