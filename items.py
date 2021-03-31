@@ -155,12 +155,11 @@ def extract_item_text(item_text_elmt: bs4.Tag) -> str:
     
     #TODO: Need to also handle accented characters in URLs
     fins = re.sub(
-        r'<a href="([a-zA-Z0-9:~/.#@!$&?_%+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$&?%_+,;=()\'-]+)</a>',
+        r'<a href="([a-zA-Z0-9:~/.#@!$/*&?_%+,;=()\'-]+)" rel="nofollow">([a-zA-Z0-9:~/.#@!$/*&?%_+,;=()\'-]+)</a>',
         r'[link=\1]',
         fins)
     # Insert newlines where <p> tags are,
     # and empty strings where '</p>' are
-    # fins = fins.replace('<p>', '\n\n')
     fins = fins.replace('</p>', '')
     # remove <td> and </td> elements, too
     fins = fins.replace('<td>', '')
