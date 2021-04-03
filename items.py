@@ -244,7 +244,7 @@ def extract_lineage(p_id: int, partial_tree_ds: Tuple[List[int], List[int],
                 # It's possible we won't find a common ancestor, in which case, the
                 # lineage will be empty, implying that the next comment is a first-level
                 # comment
-                while indent_diff < 0:
+                while indent_diff <= 0:
                     lineage.pop()
                     indent_diff += 1
         else:
