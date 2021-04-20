@@ -92,7 +92,7 @@ class PostPage(Page):
         s = ''
         random.seed(self.item.get_id())
         color = COLORS[random.randint(0, len(COLORS) - 1)]
-        s += '{}{}{}\n'.format(color, self.item.get_title(), Fore.RESET)
+        s += '{}{}({}){}\n'.format(color, self.item.get_title(), self.item.get_id(), Fore.RESET)
         main_description = self.item.get_text()
         if main_description is not None:
             pretty_description = prettify_string(main_description, '')
